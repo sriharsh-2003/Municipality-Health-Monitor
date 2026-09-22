@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — Municipality Digital Operations{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+{% block page_crumb %}Incident records and raw activity history{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Audit Log</h1>
+    <p class="lede">Correct a past incident here if something was logged wrong, or drop down to the raw field-by-field history.</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn btn-secondary" id="exportCsvBtn"><span class="material-symbols-outlined">download</span>Export Incidents (.csv)</button>
+    <button class="btn btn-secondary" id="exportBtn"><span class="material-symbols-outlined">download</span>Export Workbook (.xlsx)</button>
+  </div>
+</div>
+
+<div class="pill-tabs" id="auditTabs" style="margin-bottom:18px;">
+  <div class="pill-tab is-active" data-tab="incidents">Incidents</div>
+  <div class="pill-tab" data-tab="fields">Field Changes</div>
+</div>
+
+<div id="tabIncidents">
+  <div class="glass-card card-pad">
+    <div class="toolbar">
+      <div class="search-bar">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="incidentSearchInput" placeholder="Search by platform, category, or reporter…">
+      </div>
+      <div class="pill-tabs" id="incidentStatusFilter">
+        <div class="pill-tab is-active" data-status="all">All</div>
+        <div class="pill-tab" data-status="Open">Open</div>
+        <div class="pill-tab" data-status="Acknowledged">Acknowledged</div>
+        <div class="pill-tab" data-status="In Progress">In Progress</div>
+        <div class="pill-tab" data-status="Resolved">Resolved</div>
+      </div>
+    </div>
+    <div id="incidentAuditList"><div class="empty-state">Loading…</div></div>
+  </div>
+</div>
+
+<div id="tabFields" style="display:none;">
+  <div class="glass-card card-pad">
+    <div class="toolbar">
+      <div class="search-bar">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="searchInput" placeholder="Search by platform, field, or reporter…">
+      </div>
+      <div class="pill-tabs" id="fieldFilter">
+        <div class="pill-tab is-active" data-field="all">All fields</div>
+        <div class="pill-tab" data-field="health">Status</div>
+        <div class="pill-tab" data-field="notes">Notes</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Timestamp</th><th>Platform</th><th>Field</th><th>Old Value</th><th>New Value</th><th>Reporter</th><th>Cycle</th></tr>
+        </thead>
+        <tbody id="auditBody">
+          <tr><td colspan="7" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box" style="position:relative; max-width:720px;">
+    <button class="btn btn-ghost btn-sm modal-close" id="closeEditModal"><span class="material-symbols-outlined">close</span></button>
+    <h2 style="font-size:16px; margin-bottom:16px;">Correct Incident</h2>
+    <form id="editIncidentForm" enctype="multipart/form-data">
+      <input type="hidden" id="editIncidentId">
+      <div class="form-grid">
+        <div class="field">
+          <label>Status</label>
+          <select class="input" name="status" id="editStatus">
+            {% for s in statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Platform status at the time</label>
+          <select class="input" name="health" id="editHealth">
+            <option value="Healthy">Healthy</option>
+            <option value="Degraded">Degraded</option>
+            <option value="Down">Down</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Severity</label>
+          <select class="input" name="severity" id="editSeverity">
+            <option value="">Not set</option>
+            {% for s in severities %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select class="input" name="category" id="editCategory">
+            <option value="">Not set</option>
+            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Affected component</label><input class="input" name="affected_component" id="editComponent"></div>
+        <div class="field"><label>ETA</label><input class="input" name="eta" id="editEta"></div>
+      </div>
+      <div class="field"><label>When it happened</label><input class="input" type="datetime-local" name="occurred_at" id="editOccurredAt" style="max-width:260px;"></div>
+      <div class="field"><label>Notes</label><textarea class="input" name="notes" id="editNotes"></textarea></div>
+      <div class="field"><label>Resolution notes</label><textarea class="input" name="resolution_notes" id="editResolution"></textarea></div>
+
+      <div class="field">
+        <label>Screenshots</label>
+        <div class="thumb-grid" id="editThumbGrid"></div>
+        <div class="dropzone" id="editDropzone" style="margin-top:10px; padding:16px;">
+          <span class="material-symbols-outlined" style="font-size:22px;">add_photo_alternate</span>
+          <div class="dz-title" style="font-size:12px;">Add more screenshots</div>
+          <input type="file" id="editFileInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none;">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" id="cancelEditBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveEditBtn"><span class="material-symbols-outlined">save</span>Save Correction</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/audit.js') }}"></script>
+{% endblock %}

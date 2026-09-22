@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Add Incident — Municipality Digital Operations{% endblock %}
+{% block page_title %}Add Incident{% endblock %}
+{% block page_crumb %}Report a status change for a platform{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Log an Incident</h1>
+    <p class="lede">Pick a platform, record what changed, attach screenshots if you have them — status updates everywhere automatically.</p>
+  </div>
+</div>
+
+<div class="helper-banner">
+  <span class="material-symbols-outlined">info</span>
+  <div>Saving here updates the platform's live status, adds a full incident record to its Platform Details page, and feeds the dashboard's health trend — all in one step. Any screenshots you attach are auto-linked into the next status email for this platform.</div>
+</div>
+<div class="helper-banner" style="margin-top:-8px; margin-bottom:18px;">
+  <span class="material-symbols-outlined">badge</span>
+  <div>Reporting as <strong id="reportingAsLabel">—</strong>. Change your role/name in the top-right of the page if this isn't right.</div>
+</div>
+
+<form class="glass-card card-pad" id="incidentForm" style="max-width:860px;" enctype="multipart/form-data">
+  <div class="card-head"><div><h2>Platform &amp; Status</h2></div></div>
+  <div class="field">
+    <label>Platform <span class="req">*</span></label>
+    <select class="input" name="platform_id" id="platformSelect" required>
+      <option value="">Select a platform…</option>
+    </select>
+  </div>
+
+  <div id="currentStateBox" style="display:none; margin: 6px 0 18px;">
+    <span class="chip" id="currentStateChip"></span>
+  </div>
+
+  <div class="field">
+    <label>New status <span class="req">*</span></label>
+    <div class="segmented">
+      <div class="seg-healthy"><input type="radio" name="health" id="segHealthy" value="Healthy" checked><label for="segHealthy"><span class="status-dot healthy"></span>Healthy</label></div>
+      <div class="seg-degraded"><input type="radio" name="health" id="segDegraded" value="Degraded"><label for="segDegraded"><span class="status-dot degraded"></span>Degraded</label></div>
+      <div class="seg-down"><input type="radio" name="health" id="segDown" value="Down"><label for="segDown"><span class="status-dot down"></span>Down</label></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Incident notes <span class="req">*</span> <span class="hint">(required unless status is Healthy)</span></label>
+    <textarea class="input" name="notes" id="notesInput" placeholder="What happened, what was observed, and any action taken…"></textarea>
+    <div class="field-error">Notes are required when status is not Healthy.</div>
+  </div>
+
+  <div class="field">
+    <label>When did this happen?</label>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input class="input" type="datetime-local" name="occurred_at" id="occurredAtInput" style="max-width:260px;">
+      <button type="button" class="btn btn-secondary btn-sm" id="nowBtn"><span class="material-symbols-outlined">schedule</span>Now</button>
+    </div>
+    <div class="hint">Leave blank and it's logged as right now. Set this if you're entering something that happened earlier.</div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="card-head"><div><h2>Incident Detail</h2><div class="desc">Optional, but helps whoever picks this up next</div></div></div>
+  <div class="form-grid">
+    <div class="field">
+      <label>Severity</label>
+      <select class="input" name="severity">
+        <option value="">Not set</option>
+        {% for s in severities %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select class="input" name="category">
+        <option value="">Not set</option>
+        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Affected component</label>
+      <input class="input" name="affected_component" placeholder="e.g. Camera 4, ingest queue, login service">
+    </div>
+    <div class="field">
+      <label>Expected resolution / ETA</label>
+      <input class="input" name="eta" placeholder="e.g. Today 17:00, or Vendor dispatched">
+    </div>
+  </div>
+  <div class="field">
+    <label>Last detection <span class="hint">(optional)</span></label>
+    <input class="input" name="last_detection" placeholder="e.g. Today, 14:20 or N/A">
+  </div>
+  <div class="field">
+    <label>Resolution notes <span class="hint">(if already actioned)</span></label>
+    <textarea class="input" name="resolution_notes" placeholder="What was done, or the plan to fix it…"></textarea>
+  </div>
+
+  <div class="divider"></div>
+  <div class="card-head"><div><h2>Screenshots</h2><div class="desc">Up to 6 images — auto-attached to this incident and linked in status emails</div></div></div>
+  <div class="dropzone" id="dropzone">
+    <span class="material-symbols-outlined">add_photo_alternate</span>
+    <div class="dz-title">Drag screenshots here, or click to browse</div>
+    <div class="dz-hint">PNG, JPG, GIF or WEBP — up to 6 images</div>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none;">
+  </div>
+  <div class="thumb-grid" id="thumbGrid"></div>
+
+  <div class="form-actions">
+    <a href="/registry" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-primary" id="submitBtn"><span class="material-symbols-outlined">report</span>Save Incident</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>window.__PRESELECT_PLATFORM__ = {{ platform_id | tojson }};</script>
+<script src="{{ url_for('static', filename='js/incident.js') }}"></script>
+{% endblock %}

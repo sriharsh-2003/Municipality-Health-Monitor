@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Register Platform — Municipality Digital Operations{% endblock %}
+{% block page_title %}Register Platform{% endblock %}
+{% block page_crumb %}Add a new platform to the monitor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Register a New Platform</h1>
+    <p class="lede">Onboard a platform so it appears on the dashboard and can receive incidents.</p>
+  </div>
+</div>
+
+<form class="glass-card card-pad" id="registerForm" style="max-width:820px;">
+  <div class="card-head"><div><h2>Platform Profile</h2><div class="desc">Core identity and ownership</div></div></div>
+  <div class="form-grid">
+    <div class="field">
+      <label>Platform name <span class="req">*</span></label>
+      <input class="input" name="project_name" required placeholder="e.g. Smart Gate Platform">
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input class="input" name="url" placeholder="https://…">
+    </div>
+    <div class="field">
+      <label>Assigned operator</label>
+      <input class="input" name="assigned_operator" placeholder="e.g. K. Al-Zahrani">
+    </div>
+    <div class="field">
+      <label>Initial status</label>
+      <select class="input" name="health">
+        <option value="Healthy" selected>Healthy</option>
+        <option value="Degraded">Degraded</option>
+        <option value="Down">Down</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Notes <span class="hint">(required if status is not Healthy)</span></label>
+    <textarea class="input" name="notes" placeholder="Any context for this platform's current state…"></textarea>
+    <div class="field-error">Notes are required when status is not Healthy.</div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="card-head"><div><h2>Baseline Metrics</h2><div class="desc">Optional — can be updated later from the platform's detail page</div></div></div>
+  <div class="form-grid">
+    <div class="field"><label>Cameras online</label><input class="input" type="number" min="0" name="cameras_online" value="0"></div>
+    <div class="field"><label>Cameras total</label><input class="input" type="number" min="0" name="cameras_total" value="0"></div>
+    <div class="field"><label>Detections today</label><input class="input" type="number" min="0" name="detections_today" value="0"></div>
+    <div class="field"><label>Frames processed</label><input class="input" type="number" min="0" name="frames_processed" value="0"></div>
+    <div class="field"><label>Latency (ms)</label><input class="input" type="number" min="0" name="latency_ms" value="0"></div>
+    <div class="field"><label>Buffer queue items</label><input class="input" type="number" min="0" name="buffer_queue_items" value="0"></div>
+  </div>
+
+  <div class="form-actions">
+    <a href="/registry" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-primary" id="submitBtn"><span class="material-symbols-outlined">check</span>Register Platform</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/register.js') }}"></script>
+{% endblock %}

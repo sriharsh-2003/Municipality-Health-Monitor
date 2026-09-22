@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Platform Registry — Municipality Digital Operations{% endblock %}
+{% block page_title %}Platform Registry{% endblock %}
+{% block page_crumb %}Every registered platform{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Platform Registry</h1>
+    <p class="lede">Search, filter, and open any platform's full profile.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="/register" class="btn btn-primary"><span class="material-symbols-outlined">add_box</span>Register Platform</a>
+  </div>
+</div>
+
+<div class="glass-card card-pad">
+  <div class="toolbar">
+    <div class="search-bar">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" id="searchInput" placeholder="Search by name, operator, or URL…">
+    </div>
+    <div class="pill-tabs" id="statusFilter">
+      <div class="pill-tab is-active" data-status="all">All</div>
+      <div class="pill-tab" data-status="Healthy">Healthy</div>
+      <div class="pill-tab" data-status="Degraded">Degraded</div>
+      <div class="pill-tab" data-status="Down">Down</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>Platform</th><th>Status</th><th>Operator</th><th>Last Visit</th><th>Cameras</th><th>History</th><th></th></tr>
+      </thead>
+      <tbody id="registryBody">
+        <tr><td colspan="7" class="empty-state">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="hover-popup" id="historyPopup"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/registry.js') }}"></script>
+{% endblock %}

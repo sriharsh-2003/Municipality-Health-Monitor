@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Email Center — Municipality Digital Operations{% endblock %}
+{% block page_title %}Email Center{% endblock %}
+{% block page_crumb %}Executive status reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Email Center</h1>
+    <p class="lede">Generate the executive status report, preview it exactly as it will render, and send it — now or on a schedule.</p>
+  </div>
+</div>
+
+<div class="pill-tabs" id="emailTabs" style="margin-bottom:18px;">
+  <div class="pill-tab is-active" data-tab="preview">Executive Preview</div>
+  <div class="pill-tab" data-tab="records">Attach Records</div>
+  <div class="pill-tab" data-tab="automation">Automated Send</div>
+</div>
+
+<div id="tabPreview">
+  <div class="grid-2">
+    <div class="glass-card card-pad">
+      <div class="card-head"><div><h2>Send Report</h2><div class="desc">Builds from live platform data</div></div></div>
+      <div class="field"><label>Subject</label><input class="input" id="subjectInput" placeholder="Municipality Digital Operations Status Update"></div>
+      <div class="field"><label>Recipient email <span class="req">*</span></label><input class="input" id="recipientInput" placeholder="manager@municipality.gov"></div>
+      <div class="field"><label>Sender / reporter name</label><input class="input" id="senderInput" placeholder="Reporter"></div>
+      <div class="form-actions" style="justify-content:flex-start; border-top:none; padding-top:6px;">
+        <button class="btn btn-secondary" id="refreshPreviewBtn"><span class="material-symbols-outlined">refresh</span>Generate Preview</button>
+        <button class="btn btn-secondary" id="copyHtmlBtn"><span class="material-symbols-outlined">content_copy</span>Copy HTML</button>
+        <button class="btn btn-primary" id="sendBtn"><span class="material-symbols-outlined">send</span>Send Now</button>
+      </div>
+      <div class="helper-banner" style="margin-top:16px;">
+        <span class="material-symbols-outlined">lock</span>
+        <div>Sending requires SMTP to be configured. <a href="/smtp-settings" style="text-decoration:underline;">Set it up here</a> if you haven't yet.</div>
+      </div>
+      <div class="helper-banner" style="margin-top:10px;">
+        <span class="material-symbols-outlined">image</span>
+        <div>Any screenshots attached to a platform's latest incident (via Add Incident) are pulled in and linked automatically next to that platform in the report — nothing to attach manually here.</div>
+      </div>
+      <div class="helper-banner" style="margin-top:10px;">
+        <span class="material-symbols-outlined">attach_file</span>
+        <div id="attachSummary">No specific incident records selected to attach. Use the <strong>Attach Records</strong> tab to pick specific ones as a CSV attachment.</div>
+      </div>
+    </div>
+
+    <div class="glass-card card-pad">
+      <div class="card-head">
+        <div>
+          <h2>Preview</h2>
+          <div class="desc" id="previewDesc">Click "Generate Preview" to build the report</div>
+        </div>
+        <div class="card-head-spacer"></div>
+        <span class="chip" id="editStateChip" style="display:none;"></span>
+        <button class="btn btn-secondary btn-sm" id="editToggleBtn" style="display:none;"><span class="material-symbols-outlined">edit</span>Edit Content</button>
+      </div>
+      <div id="previewFrame" style="background:#fff; border-radius:12px; border:1px solid var(--c-border); min-height:360px; overflow:auto; max-height:520px;">
+        <div class="empty-state"><span class="material-symbols-outlined">mail</span><div>Click "Generate Preview" to build the report.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tabRecords" style="display:none;">
+  <div class="glass-card card-pad">
+    <div class="card-head">
+      <div>
+        <h2>Attach Specific Records</h2>
+        <div class="desc">Select incidents to include as a CSV attachment on the next send</div>
+      </div>
+      <div class="card-head-spacer"></div>
+      <span class="chip" id="recordsSelectedChip">0 selected</span>
+    </div>
+    <div class="toolbar">
+      <div class="search-bar">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" id="recordsSearchInput" placeholder="Search by platform, category, or reporter…">
+      </div>
+      <button class="btn btn-secondary btn-sm" id="clearSelectionBtn">Clear Selection</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th style="width:36px;"></th><th>Platform</th><th>Status</th><th>Severity</th><th>Timestamp</th><th>Reporter</th></tr>
+        </thead>
+        <tbody id="recordsBody">
+          <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="tabAutomation" style="display:none;">
+  <form class="glass-card card-pad" id="automationForm" style="max-width:620px;">
+    <div class="card-head"><div><h2>Automated Email</h2><div class="desc">Sends on its own while the app is running</div></div></div>
+    <div class="field">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="automationEnabled" style="width:16px;height:16px;">
+        Enable automated sending
+      </label>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Recipient email</label><input class="input" id="autoRecipient" placeholder="manager@municipality.gov"></div>
+      <div class="field"><label>Sender / reporter name</label><input class="input" id="autoSender" placeholder="Reporter"></div>
+      <div class="field">
+        <label>Frequency</label>
+        <select class="input" id="autoFrequency">
+          <option value="daily">Every day</option>
+          <option value="weekdays">Weekdays only</option>
+          <option value="weekly">Weekly (Sunday)</option>
+        </select>
+      </div>
+      <div class="field"><label>Send time</label><input class="input" type="time" id="autoTime" value="09:00"></div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveAutomationBtn"><span class="material-symbols-outlined">save</span>Save Automation</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/email.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,10 @@
+backend/config.json
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+data/platform_health.xlsx
+data/app_state.json
+data/attachments/*
+!data/attachments/.gitkeep
+data/backups/*
+!data/backups/.gitkeep

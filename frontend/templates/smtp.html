@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Settings — Municipality Digital Operations{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_crumb %}Mail server, uploads, and email signature{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Settings</h1>
+    <p class="lede">Mail server configuration, upload preferences, and the default signature used on outgoing reports.</p>
+  </div>
+  <div class="page-header-actions" id="statusPillWrap"></div>
+</div>
+
+<div class="grid-2" style="margin-bottom:18px; align-items:start;">
+  <form class="glass-card card-pad" id="smtpForm">
+    <div class="card-head"><div><h2>SMTP Server</h2><div class="desc">Nothing is sent anywhere until this is filled in and saved</div></div></div>
+    <div class="form-grid">
+      <div class="field"><label>SMTP host <span class="req">*</span></label><input class="input" id="smtpHost" placeholder="smtp.yourmailserver.com"></div>
+      <div class="field"><label>Port <span class="req">*</span></label><input class="input" type="number" id="smtpPort" placeholder="587"></div>
+      <div class="field"><label>Username <span class="req">*</span></label><input class="input" id="smtpUsername" placeholder="your-account@yourmailserver.com"></div>
+      <div class="field"><label>Password <span class="req">*</span></label><input class="input" type="password" id="smtpPassword" placeholder="App password"></div>
+      <div class="field"><label>From address</label><input class="input" id="fromAddress" placeholder="Defaults to username"></div>
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:8px;">
+          <input type="checkbox" id="useTls" checked style="width:16px;height:16px;"> Use STARTTLS
+        </label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" id="testBtn"><span class="material-symbols-outlined">wifi_tethering</span>Test Connection</button>
+      <button type="submit" class="btn btn-primary" id="saveBtn"><span class="material-symbols-outlined">save</span>Save Configuration</button>
+    </div>
+  </form>
+
+  <div style="display:flex; flex-direction:column; gap:18px;">
+    <form class="glass-card card-pad" id="uploadPrefsForm">
+      <div class="card-head"><div><h2>Screenshot Uploads</h2><div class="desc">Applies to every incident screenshot going forward</div></div></div>
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="compressScreenshots" checked style="width:16px;height:16px;">
+          Compress screenshots on upload
+        </label>
+        <div class="hint">Resizes to a max of 1600px and re-encodes — noticeably smaller files, still clearly readable. Turn this off to keep the exact original file instead.</div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-sm" id="saveUploadPrefsBtn"><span class="material-symbols-outlined">save</span>Save</button>
+      </div>
+    </form>
+
+    <form class="glass-card card-pad" id="signatureForm">
+      <div class="card-head"><div><h2>Default Identity &amp; Email Signature</h2><div class="desc">Used to pre-fill "who's using this" and every outgoing report's sign-off</div></div></div>
+      <div class="field"><label>Default reporter name</label><input class="input" id="defaultReporterName" placeholder="e.g. Yousef Al-Sri"></div>
+      <div class="hint" style="margin-top:-8px; margin-bottom:10px;">Pre-fills the name field in the top-right of every page for anyone who hasn't set their own yet — so it shows a real name instead of just a role.</div>
+      <div class="field"><label>Title / role</label><input class="input" id="signatureTitle" placeholder="e.g. Platform Operations Supervisor"></div>
+      <div class="field"><label>Organization line</label><input class="input" id="signatureOrg" placeholder="e.g. Municipality Digital Operations"></div>
+      <div class="hint" style="margin-top:-8px; margin-bottom:10px;">Appears under the sender's name in the "Thanks," sign-off of every generated report.</div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-sm" id="saveSignatureBtn"><span class="material-symbols-outlined">save</span>Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/smtp.js') }}"></script>
+{% endblock %}

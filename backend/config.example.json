@@ -1,0 +1,8 @@
+{
+  "smtp_host": "smtp.yourmailserver.com",
+  "smtp_port": 587,
+  "smtp_username": "your-account@yourmailserver.com",
+  "smtp_password": "REPLACE_WITH_APP_PASSWORD",
+  "use_tls": true,
+  "from_address": "your-account@yourmailserver.com"
+}

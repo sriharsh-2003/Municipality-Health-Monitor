@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Municipality Digital Operations{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/design.css') }}">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-mark">MD</div>
+      <div class="sidebar-brand-text">
+        <div class="name">Municipality Digital Ops</div>
+        <div class="sub">Platform Health Monitor</div>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Collapse">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Monitor</div>
+      <a class="nav-item {{ 'is-active' if active=='overview' else '' }}" href="/">
+        <span class="material-symbols-outlined">space_dashboard</span><span>Dashboard Overview</span>
+      </a>
+      <a class="nav-item {{ 'is-active' if active=='registry' else '' }}" href="/registry">
+        <span class="material-symbols-outlined">dns</span><span>Platform Registry</span>
+      </a>
+
+      <div class="sidebar-section-label">Actions</div>
+      <a class="nav-item {{ 'is-active' if active=='register' else '' }}" href="/register">
+        <span class="material-symbols-outlined">add_box</span><span>Register Platform</span>
+      </a>
+      <a class="nav-item {{ 'is-active' if active=='incident' else '' }}" href="/incident">
+        <span class="material-symbols-outlined">report</span><span>Add Incident</span>
+      </a>
+
+      <div class="sidebar-section-label">Reporting</div>
+      <a class="nav-item {{ 'is-active' if active=='email' else '' }}" href="/email">
+        <span class="material-symbols-outlined">forward_to_inbox</span><span>Email Center</span>
+      </a>
+      <a class="nav-item {{ 'is-active' if active=='smtp' else '' }}" href="/smtp-settings">
+        <span class="material-symbols-outlined">settings_suggest</span><span>Settings</span>
+      </a>
+      <a class="nav-item {{ 'is-active' if active=='audit' else '' }}" href="/audit">
+        <span class="material-symbols-outlined">history</span><span>Audit Log</span>
+      </a>
+      <a class="nav-item {{ 'is-active' if active=='backups' else '' }}" href="/backups">
+        <span class="material-symbols-outlined">backup</span><span>Backups</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">Local instance · v2.0</div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+        <div class="topbar-crumb">{% block page_crumb %}Municipality Digital Operations{% endblock %}</div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-pill">
+        <span class="material-symbols-outlined">badge</span>
+        <select class="operator-role-select" id="operatorRoleSelect" title="Which role are you using the platform as?">
+          <option value="Admin">Admin</option>
+          <option value="Supervisor">Supervisor</option>
+          <option value="Operator">Operator</option>
+        </select>
+        <input class="operator-input" id="operatorNameInput" type="text" placeholder="Your name (optional)">
+      </div>
+    </header>
+
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="{{ url_for('static', filename='js/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/shell.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Backups — Municipality Digital Operations{% endblock %}
+{% block page_title %}Backups{% endblock %}
+{% block page_crumb %}Data protection{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Backups</h1>
+    <p class="lede">A backup is a compressed copy of the workbook and every screenshot — enough to fully restore the app's data.</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn btn-primary" id="backupNowBtn"><span class="material-symbols-outlined">backup</span>Backup Now</button>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:18px;">
+  <form class="glass-card card-pad" id="backupSettingsForm">
+    <div class="card-head"><div><h2>Automatic Backups</h2><div class="desc">Runs quietly in the background while the app is open</div></div></div>
+    <div class="field">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="backupEnabled" style="width:16px;height:16px;">
+        Enable automatic backups
+      </label>
+    </div>
+    <div class="field">
+      <label>Back up every</label>
+      <select class="input" id="backupInterval" style="max-width:220px;">
+        <option value="1">Day</option>
+        <option value="3">3 Days</option>
+        <option value="7">Week</option>
+        <option value="14">2 Weeks</option>
+        <option value="30">Month</option>
+      </select>
+    </div>
+    <div class="hint" id="lastBackupHint" style="margin-bottom:14px;">No backups yet.</div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveBackupSettingsBtn"><span class="material-symbols-outlined">save</span>Save Settings</button>
+    </div>
+  </form>
+
+  <div class="glass-card card-pad">
+    <div class="card-head"><div><h2>How This Works</h2></div></div>
+    <div style="font-size:13px; color:var(--c-on-surface-var); line-height:1.7;">
+      <p>Each backup is a single <code>.zip</code> file named with the exact date and time it was made, e.g. <code>platform-health-backup_2026-09-21_143000.zip</code>, so they sort chronologically and never overwrite each other.</p>
+      <p style="margin-top:10px;">The 30 most recent backups are kept automatically — older ones are removed on a schedule so backups don't quietly fill up the laptop's disk over months of use.</p>
+      <p style="margin-top:10px;">To restore one: unzip it, then copy <code>data/platform_health.xlsx</code> and the <code>data/attachments</code> folder from inside it back into this app's <code>data/</code> folder (with the app closed).</p>
+    </div>
+  </div>
+</div>
+
+<div class="glass-card card-pad">
+  <div class="card-head"><div><h2>Backup History</h2><div class="desc">Most recent first</div></div></div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>File</th><th>Created</th><th>Size</th><th></th></tr></thead>
+      <tbody id="backupsBody"><tr><td colspan="4" class="empty-state">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/backups.js') }}"></script>
+{% endblock %}

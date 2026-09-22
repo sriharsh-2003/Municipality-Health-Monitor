@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Overview — Municipality Digital Operations{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+{% block page_crumb %}Live platform health snapshot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Platform Health at a Glance</h1>
+    <p class="lede">Current status is always live. Trend, incidents, and activity below reflect the selected time range.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="/incident" class="btn btn-primary"><span class="material-symbols-outlined">report</span>Add Incident</a>
+    <a href="/register" class="btn btn-secondary"><span class="material-symbols-outlined">add_box</span>Register Platform</a>
+    <button class="btn btn-secondary" id="exportBtn"><span class="material-symbols-outlined">download</span>Export</button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="pill-tabs" id="rangeTabs">
+    <div class="pill-tab" data-range="today">Today</div>
+    <div class="pill-tab is-active" data-range="7d">Week</div>
+    <div class="pill-tab" data-range="30d">Month</div>
+    <div class="pill-tab" data-range="12m">Year</div>
+    <div class="pill-tab" data-range="all">All Time</div>
+    <div class="pill-tab" data-range="custom">Custom…</div>
+  </div>
+  <div class="card-head-spacer"></div>
+  <div id="customRangeBox" style="display:none; gap:8px; align-items:center;">
+    <input type="date" class="input" id="rangeStart" style="width:150px;">
+    <span style="color:var(--c-outline); font-size:12px;">to</span>
+    <input type="date" class="input" id="rangeEnd" style="width:150px;">
+    <button class="btn btn-secondary btn-sm" id="applyCustomRange">Apply</button>
+  </div>
+</div>
+
+<div class="kpi-grid kpi-grid-scroll" id="kpiGrid">
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon"><span class="material-symbols-outlined">dns</span></div></div>
+    <div class="kpi-label">Total Platforms</div>
+    <div class="kpi-value" id="kpiTotal">—</div>
+    <div class="kpi-trend">Live</div>
+  </div>
+  <div class="kpi-card kpi-clickable" data-filter="Healthy">
+    <div class="kpi-top"><div class="kpi-icon teal"><span class="material-symbols-outlined">check_circle</span></div></div>
+    <div class="kpi-label">Healthy</div>
+    <div class="kpi-value" id="kpiHealthy">—</div>
+    <div class="kpi-trend up" id="kpiHealthyPct">—</div>
+  </div>
+  <div class="kpi-card kpi-clickable" data-filter="Degraded">
+    <div class="kpi-top"><div class="kpi-icon amber"><span class="material-symbols-outlined">warning</span></div></div>
+    <div class="kpi-label">Degraded</div>
+    <div class="kpi-value" id="kpiWarning">—</div>
+    <div class="kpi-trend" id="kpiWarningPct">—</div>
+  </div>
+  <div class="kpi-card kpi-clickable" data-filter="Down">
+    <div class="kpi-top"><div class="kpi-icon down"><span class="material-symbols-outlined">error</span></div></div>
+    <div class="kpi-label">Down</div>
+    <div class="kpi-value" id="kpiCritical">—</div>
+    <div class="kpi-trend down" id="kpiCriticalPct">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon"><span class="material-symbols-outlined">report</span></div></div>
+    <div class="kpi-label">Incidents in Range</div>
+    <div class="kpi-value" id="kpiIncidents">—</div>
+    <div class="kpi-trend" id="kpiIncidentsSub">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon down"><span class="material-symbols-outlined">priority_high</span></div></div>
+    <div class="kpi-label">Critical Incidents</div>
+    <div class="kpi-value" id="kpiCriticalIncidents">—</div>
+    <div class="kpi-trend">In range</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon amber"><span class="material-symbols-outlined">pending_actions</span></div></div>
+    <div class="kpi-label">Still Open</div>
+    <div class="kpi-value" id="kpiOpenIncidents">—</div>
+    <div class="kpi-trend">Not yet resolved</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon teal"><span class="material-symbols-outlined">videocam</span></div></div>
+    <div class="kpi-label">Cameras Online</div>
+    <div class="kpi-value" id="kpiCamerasPct">—</div>
+    <div class="kpi-trend">Live, fleet-wide</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon"><span class="material-symbols-outlined">bolt</span></div></div>
+    <div class="kpi-label">Avg Latency</div>
+    <div class="kpi-value" id="kpiLatency">—</div>
+    <div class="kpi-trend">Live, fleet-wide</div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:18px;">
+  <div class="glass-card card-pad">
+    <div class="card-head">
+      <div>
+        <h2>Health Trend</h2>
+        <div class="desc">Healthy / degraded / down counts across the selected range</div>
+      </div>
+    </div>
+    <canvas id="trendChart" height="150"></canvas>
+  </div>
+  <div class="glass-card card-pad">
+    <div class="card-head">
+      <div>
+        <h2>Status Split</h2>
+        <div class="desc">Current distribution</div>
+      </div>
+    </div>
+    <canvas id="donutChart" height="150"></canvas>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:18px;">
+  <div class="glass-card card-pad">
+    <div class="card-head">
+      <div>
+        <h2>Platforms</h2>
+        <div class="desc" id="platformTableDesc">Live status of every registered platform</div>
+      </div>
+      <div class="card-head-spacer"></div>
+      <a href="/registry" class="btn btn-ghost btn-sm">View registry<span class="material-symbols-outlined">arrow_forward</span></a>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="platformTable">
+        <thead>
+          <tr><th>Platform</th><th>Status</th><th>Operator</th><th>Last Visit</th><th></th></tr>
+        </thead>
+        <tbody id="platformTableBody">
+          <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="glass-card card-pad">
+    <div class="card-head">
+      <div>
+        <h2>Recent Incidents</h2>
+        <div class="desc">Within the selected range</div>
+      </div>
+      <div class="card-head-spacer"></div>
+      <a href="/audit" class="btn btn-ghost btn-sm">Full log<span class="material-symbols-outlined">arrow_forward</span></a>
+    </div>
+    <div class="timeline" id="recentIncidents">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<div class="glass-card card-pad">
+  <div class="card-head">
+    <div>
+      <h2>Quick Actions</h2>
+      <div class="desc">Jump straight into the most common tasks</div>
+    </div>
+  </div>
+  <div class="grid-3">
+    <a href="/incident" class="btn btn-secondary btn-block" style="justify-content:flex-start; padding:14px 16px;">
+      <span class="material-symbols-outlined">report</span> Log an incident for a platform
+    </a>
+    <a href="/register" class="btn btn-secondary btn-block" style="justify-content:flex-start; padding:14px 16px;">
+      <span class="material-symbols-outlined">add_box</span> Register a new platform
+    </a>
+    <a href="/email" class="btn btn-secondary btn-block" style="justify-content:flex-start; padding:14px 16px;">
+      <span class="material-symbols-outlined">forward_to_inbox</span> Prepare the executive email
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/overview.js') }}"></script>
+{% endblock %}

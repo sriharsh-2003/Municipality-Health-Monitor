@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Platform Details — Municipality Digital Operations{% endblock %}
+{% block page_title %}Platform Details{% endblock %}
+{% block page_crumb %}Profile, incidents, and audit trail{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 id="platformName">Loading…</h1>
+    <p class="lede" id="platformUrl"></p>
+  </div>
+  <div class="page-header-actions">
+    <a href="#" class="btn btn-secondary" id="logIncidentBtn"><span class="material-symbols-outlined">report</span>Log Incident</a>
+    <button class="btn btn-danger" id="deleteBtn"><span class="material-symbols-outlined">delete</span>Remove</button>
+  </div>
+</div>
+
+<div class="grid-3" style="margin-bottom:18px;">
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon" id="statusIconWrap"><span class="material-symbols-outlined" id="statusIcon">check_circle</span></div></div>
+    <div class="kpi-label">Current Status</div>
+    <div class="kpi-value" id="statusValue" style="font-size:20px;">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon teal"><span class="material-symbols-outlined">videocam</span></div></div>
+    <div class="kpi-label">Cameras Online</div>
+    <div class="kpi-value" id="camerasValue">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-icon"><span class="material-symbols-outlined">bolt</span></div></div>
+    <div class="kpi-label">Latency</div>
+    <div class="kpi-value" id="latencyValue">—</div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:18px;">
+  <form class="glass-card card-pad" id="profileForm">
+    <div class="card-head"><div><h2>Platform Profile</h2><div class="desc">Editable details</div></div></div>
+    <div class="form-grid">
+      <div class="field"><label>Platform name</label><input class="input" name="project_name"></div>
+      <div class="field"><label>URL</label><input class="input" name="url"></div>
+      <div class="field"><label>Assigned operator</label><input class="input" name="assigned_operator"></div>
+      <div class="field"><label>Last visit</label><input class="input" name="last_visit"></div>
+      <div class="field"><label>Cameras online</label><input class="input" type="number" min="0" name="cameras_online"></div>
+      <div class="field"><label>Cameras total</label><input class="input" type="number" min="0" name="cameras_total"></div>
+      <div class="field"><label>Detections today</label><input class="input" type="number" min="0" name="detections_today"></div>
+      <div class="field"><label>Frames processed</label><input class="input" type="number" min="0" name="frames_processed"></div>
+      <div class="field"><label>Latency (ms)</label><input class="input" type="number" min="0" name="latency_ms"></div>
+      <div class="field"><label>Buffer queue items</label><input class="input" type="number" min="0" name="buffer_queue_items"></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea class="input" name="notes"></textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveProfileBtn"><span class="material-symbols-outlined">save</span>Save Changes</button>
+    </div>
+  </form>
+
+  <div class="glass-card card-pad">
+    <div class="card-head"><div><h2>Incident History</h2><div class="desc">Full incident records for this platform, including any screenshots</div></div></div>
+    <div id="incidentList">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<div class="glass-card card-pad" style="margin-top:18px;">
+  <div class="card-head"><div><h2>Field-Level Audit Trail</h2><div class="desc">Every raw field change for this platform</div></div></div>
+  <div class="timeline" id="platformTimeline">
+    <div class="empty-state">Loading…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>window.__PLATFORM_ID__ = {{ platform_id | tojson }};</script>
+<script src="{{ url_for('static', filename='js/platform_detail.js') }}"></script>
+{% endblock %}
