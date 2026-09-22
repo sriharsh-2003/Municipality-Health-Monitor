@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Settings — Municipality Digital Operations{% endblock %}
+{% block title %}Settings | Municipality Digital Operations{% endblock %}
 {% block page_title %}Settings{% endblock %}
 {% block page_crumb %}Mail server, uploads, and email signature{% endblock %}
 
@@ -41,7 +41,7 @@
           <input type="checkbox" id="compressScreenshots" checked style="width:16px;height:16px;">
           Compress screenshots on upload
         </label>
-        <div class="hint">Resizes to a max of 1600px and re-encodes — noticeably smaller files, still clearly readable. Turn this off to keep the exact original file instead.</div>
+        <div class="hint">Resizes to a max of 1600px and re-encodes, giving noticeably smaller files that are still clearly readable. Turn this off to keep the exact original file instead.</div>
       </div>
       <div class="form-actions">
         <button type="submit" class="btn btn-primary btn-sm" id="saveUploadPrefsBtn"><span class="material-symbols-outlined">save</span>Save</button>
@@ -51,7 +51,7 @@
     <form class="glass-card card-pad" id="signatureForm">
       <div class="card-head"><div><h2>Default Identity &amp; Email Signature</h2><div class="desc">Used to pre-fill "who's using this" and every outgoing report's sign-off</div></div></div>
       <div class="field"><label>Default reporter name</label><input class="input" id="defaultReporterName" placeholder="e.g. Yousef Al-Sri"></div>
-      <div class="hint" style="margin-top:-8px; margin-bottom:10px;">Pre-fills the name field in the top-right of every page for anyone who hasn't set their own yet — so it shows a real name instead of just a role.</div>
+      <div class="hint" style="margin-top:-8px; margin-bottom:10px;">Pre-fills the name field in the top-right of every page for anyone who hasn't set their own yet, so it shows a real name instead of just a role.</div>
       <div class="field"><label>Title / role</label><input class="input" id="signatureTitle" placeholder="e.g. Platform Operations Supervisor"></div>
       <div class="field"><label>Organization line</label><input class="input" id="signatureOrg" placeholder="e.g. Municipality Digital Operations"></div>
       <div class="hint" style="margin-top:-8px; margin-bottom:10px;">Appears under the sender's name in the "Thanks," sign-off of every generated report.</div>

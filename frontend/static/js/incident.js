@@ -1,4 +1,4 @@
-/* incident.js — Add Incident: select platform, set status + detail + screenshots.
+/* incident.js, Add Incident: select platform, set status + detail + screenshots.
    Saving updates the platform's status/notes AND writes a full incident record. */
 
 let platformsById = {};
@@ -30,7 +30,7 @@ function onPlatformChange() {
   const p = platformsById[select.value];
   if (!p) { box.style.display = "none"; return; }
   box.style.display = "block";
-  chip.innerHTML = `<span class="status-dot ${p.health === "Healthy" ? "healthy" : p.health === "Degraded" ? "degraded" : "down"}"></span>Currently: ${escapeHtml(p.health)} · last visit ${escapeHtml(p.last_visit || "—")}`;
+  chip.innerHTML = `<span class="status-dot ${p.health === "Healthy" ? "healthy" : p.health === "Degraded" ? "degraded" : "down"}"></span>Currently: ${escapeHtml(p.health)} · last visit ${escapeHtml(p.last_visit || "Not set")}`;
   document.querySelectorAll('input[name="health"]').forEach((r) => { r.checked = r.value === p.health; });
   validateNotes();
 }
@@ -72,7 +72,7 @@ function addFiles(fileList) {
   const room = MAX_FILES - selectedFiles.length;
   if (room <= 0) { showToast(`You can attach up to ${MAX_FILES} screenshots.`, true); return; }
   selectedFiles = selectedFiles.concat(incoming.slice(0, room));
-  if (incoming.length > room) showToast(`Only added the first ${room} — ${MAX_FILES} max.`, true);
+  if (incoming.length > room) showToast(`Only added the first ${room}. ${MAX_FILES} is the max.`, true);
   renderThumbs();
 }
 
@@ -95,6 +95,7 @@ function setupDropzone() {
 document.addEventListener("DOMContentLoaded", () => {
   loadPlatformOptions();
   setupDropzone();
+  showHint("incident-workflow", "Saving here updates the platform's live status, adds a full incident record to its Platform Details page, and feeds the dashboard's health trend, all in one step. Screenshots you attach are linked automatically into the next status email for this platform.", "report");
   const reportingAsLabel = document.getElementById("reportingAsLabel");
   if (reportingAsLabel) reportingAsLabel.textContent = getOperatorName();
   document.getElementById("platformSelect").addEventListener("change", onPlatformChange);
@@ -132,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.disabled = true;
     try {
       await Api.createIncident(platformId, fd);
-      showToast("Incident saved — platform status updated.");
+      showToast("Incident saved. Platform status updated.");
       setTimeout(() => { window.location.href = `/platform/${encodeURIComponent(platformId)}`; }, 500);
     } catch (err) {
       showToast(err.message || "Could not save incident.", true);

@@ -1,4 +1,4 @@
-/* registry.js — Platform Registry: search, status filter, list, and a
+/* registry.js, Platform Registry: search, status filter, list, and a
    hover popup (1s delay, persists while hovering the popup itself) that
    previews a platform's recent incident history without leaving the page. */
 
@@ -47,7 +47,7 @@ function renderRegistry() {
         <div class="cell-muted">${escapeHtml(p.url || "")}</div>
       </td>
       <td>${healthBadge(p.health)}</td>
-      <td>${escapeHtml(p.assigned_operator || "—")}</td>
+      <td>${escapeHtml(p.assigned_operator || "Unassigned")}</td>
       <td class="cell-muted">${escapeHtml(timeAgoOrValue(p.last_visit))}</td>
       <td class="cell-muted">${p.cameras_online ?? 0} / ${p.cameras_total ?? 0}</td>
       <td>
@@ -107,7 +107,7 @@ async function showHistoryPopup(platformId, platformName, triggerRect) {
     }
   }
 
-  popup.innerHTML = `<div class="hover-popup-title">${escapeHtml(platformName)} — recent incidents</div>` + (
+  popup.innerHTML = `<div class="hover-popup-title">${escapeHtml(platformName)}, recent incidents</div>` + (
     incidents.length
       ? incidents.map((inc) => `
         <div class="hover-popup-item">

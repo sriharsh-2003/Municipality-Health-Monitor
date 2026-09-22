@@ -1,4 +1,4 @@
-/* smtp.js — SMTP Settings: load, test connection, save. */
+/* smtp.js, SMTP Settings: load, test connection, save. */
 
 function gatherConfig() {
   return {

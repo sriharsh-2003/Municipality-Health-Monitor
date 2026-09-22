@@ -26,7 +26,7 @@ const Api = (() => {
     return body;
   }
 
-  // For multipart/form-data (file uploads) — do NOT set Content-Type
+  // For multipart/form-data (file uploads), do NOT set Content-Type
   // manually, the browser needs to add its own multipart boundary.
   async function requestForm(path, formData, method = "POST") {
     const res = await fetch(path, { method, body: formData });

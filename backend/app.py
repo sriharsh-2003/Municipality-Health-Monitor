@@ -42,7 +42,7 @@ CONFIG_PATH = BASE_DIR / "config.json"
 CONFIG_EXAMPLE_PATH = BASE_DIR / "config.example.json"
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 MAX_SCREENSHOTS_PER_INCIDENT = 6
-MAX_IMAGE_DIMENSION = 1600  # long edge, px — stays comfortably readable while cutting file size a lot
+MAX_IMAGE_DIMENSION = 1600  # long edge, px, stays comfortably readable while cutting file size a lot
 
 app = Flask(
     __name__,
@@ -61,7 +61,7 @@ def _allowed_image(filename):
 
 
 def _save_screenshot(file_storage, dest_path):
-    """Respects the compress_screenshots app setting — compress (resized +
+    """Respects the compress_screenshots app setting, compress (resized +
     re-encoded, still clearly readable) or save the original bytes untouched."""
     if store.get_app_settings().get("compress_screenshots", True):
         _compress_and_save_image(file_storage, dest_path)
@@ -86,13 +86,13 @@ def _compress_and_save_image(file_storage, dest_path):
         elif img_format == "WEBP":
             img.save(dest_path, format="WEBP", quality=85, method=6)
         else:
-            # PNG/GIF and anything else — keep lossless so text stays crisp.
+            # PNG/GIF and anything else, keep lossless so text stays crisp.
             if img.mode not in ("RGB", "RGBA", "P"):
                 img = img.convert("RGBA")
             img.save(dest_path, format="PNG", optimize=True)
         return True
     except Exception:
-        # Not a readable image (or an unsupported format) — fall back to
+        # Not a readable image (or an unsupported format), fall back to
         # saving the original bytes untouched rather than losing the upload.
         file_storage.stream.seek(0)
         file_storage.save(dest_path)
@@ -255,7 +255,7 @@ def api_create_incident(platform_id):
     """
     multipart/form-data: health, notes, last_detection, severity, category,
     affected_component, resolution_notes, eta, changed_by, occurred_at
-    (optional 'YYYY-MM-DDTHH:MM' — defaults to now when omitted), and 0+
+    (optional 'YYYY-MM-DDTHH:MM', defaults to now when omitted), and 0+
     files under the field name "screenshots".
     """
     if not store.get_platform(platform_id):
@@ -336,7 +336,7 @@ def api_get_incident(incident_id):
 @app.route("/api/incidents/<incident_id>", methods=["PUT"])
 def api_update_incident(incident_id):
     """
-    Corrects a past incident record — for example, fixing a typo or a wrong
+    Corrects a past incident record, for example, fixing a typo or a wrong
     severity after the fact. multipart/form-data with any of: severity,
     category, affected_component, health, notes, resolution_notes, eta,
     status, occurred_at (renames the record's timestamp), changed_by,
@@ -502,12 +502,36 @@ def _resolve_range(range_key, start_param, end_param):
     return now - delta, now
 
 
+def _rollup_daily(snapshots):
+    """Collapses every action-level snapshot down to one point per calendar
+    day, using the last snapshot of that day (its end-of-day state), sorted
+    oldest to newest. A trend chart with one action per data point looks
+    noisy and jagged the moment more than a few actions happen in a day;
+    a daily line reads the way "trend" actually implies."""
+    by_day = {}
+    for s in snapshots:
+        ts = s.get("timestamp", "")
+        day_key = ts[:10] if ts else ""
+        if not day_key:
+            continue
+        # Snapshots already come out oldest-first from list_snapshots, so
+        # the last one seen per day is naturally that day's final state.
+        by_day[day_key] = s
+    days = sorted(by_day.keys())
+    rolled = []
+    for day in days[-90:]:  # a 90-day cap keeps "All Time" legible on very old datasets
+        s = dict(by_day[day])
+        s["timestamp"] = day
+        rolled.append(s)
+    return rolled
+
+
 @app.route("/api/dashboard")
 def api_dashboard():
     """
     Everything the Dashboard Overview page needs for a given time window, in
     one call. Current-status counts (healthy/warning/critical/total right
-    now) are always live — a platform only has one status at a time, so
+    now) are always live, a platform only has one status at a time, so
     "status as of last month" isn't a meaningful thing to show. Everything
     else here (trend, incident count, recent incidents) is filtered to the
     selected range.
@@ -523,7 +547,7 @@ def api_dashboard():
         snapshots = [s for s in snapshots if s.get("timestamp", "") >= start.isoformat()]
     if end:
         snapshots = [s for s in snapshots if s.get("timestamp", "") <= end.isoformat()]
-    snapshots = snapshots[-60:]  # keep the chart legible even over "All Time"
+    trend = _rollup_daily(snapshots)
 
     incidents = store.list_incidents(limit=100000)
     if start:
@@ -532,13 +556,13 @@ def api_dashboard():
         incidents = [i for i in incidents if i.get("timestamp", "") <= end.isoformat()]
     incidents.sort(key=lambda i: i.get("timestamp", ""), reverse=True)
 
-    latencies = [p.get("latency_ms") or 0 for p in platforms]
-    avg_latency = round(sum(latencies) / len(latencies), 1) if latencies else 0
-    cams_online = sum(p.get("cameras_online") or 0 for p in platforms)
-    cams_total = sum(p.get("cameras_total") or 0 for p in platforms)
-    cams_pct = round((cams_online / cams_total) * 100) if cams_total else 0
     critical_in_range = sum(1 for i in incidents if i.get("severity") == "Critical" or i.get("health") == "Down")
-    open_incidents = sum(1 for i in incidents if (i.get("status") or "Open") in ("Open", "Acknowledged", "In Progress"))
+
+    # "Still open" is a live operational backlog count, independent of the
+    # selected range, since an old unresolved incident should not vanish
+    # from the count just because the person is looking at "This Week".
+    all_incidents = store.list_incidents(limit=100000)
+    open_incidents_total = sum(1 for i in all_incidents if (i.get("status") or "Open") in ("Open", "Acknowledged", "In Progress"))
 
     return jsonify({
         "range": {
@@ -547,12 +571,10 @@ def api_dashboard():
             "end": end.isoformat() if end else None,
         },
         "current": current,
-        "trend": snapshots,
+        "trend": trend,
         "incidents_in_range": len(incidents),
         "critical_incidents_in_range": critical_in_range,
-        "open_incidents_in_range": open_incidents,
-        "avg_latency_ms": avg_latency,
-        "cameras_online_pct": cams_pct,
+        "open_incidents_total": open_incidents_total,
         "recent_incidents": incidents[:8],
     })
 
@@ -586,7 +608,7 @@ def api_email_send():
         return jsonify({"error": "recipient is required"}), 400
 
     if custom_html:
-        # The reporter edited the generated preview by hand — send exactly
+        # The reporter edited the generated preview by hand, send exactly
         # what they left in the editor, rather than rebuilding from live data.
         html = custom_html
         text = body.get("text") or email_builder.html_to_text(custom_html)
@@ -624,8 +646,8 @@ def api_email_send():
 
 
 def _latest_incident_screenshots_by_platform():
-    """Most recent incident with at least one screenshot, per platform —
-    used to auto-link screenshots into the status email next to each
+    """Most recent incident with at least one screenshot, per platform.
+    Used to auto-link screenshots into the status email next to each
     platform's issue writeup."""
     result = {}
     for inc in store.list_incidents(limit=500):

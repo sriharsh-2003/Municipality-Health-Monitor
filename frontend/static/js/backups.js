@@ -1,4 +1,4 @@
-/* backups.js — Backups page: settings, backup now, history list. */
+/* backups.js, Backups page: settings, backup now, history list. */
 
 function formatBytes(bytes) {
   if (!bytes) return "0 KB";
@@ -26,7 +26,7 @@ async function loadBackupsList() {
   try {
     const backups = await Api.listBackups();
     if (!backups.length) {
-      body.innerHTML = '<tr><td colspan="4" class="empty-state"><span class="material-symbols-outlined">backup</span><div>No backups yet — click "Backup Now" to make the first one.</div></td></tr>';
+      body.innerHTML = '<tr><td colspan="4" class="empty-state"><span class="material-symbols-outlined">backup</span><div>No backups yet. Click "Backup Now" to make the first one.</div></td></tr>';
       return;
     }
     body.innerHTML = backups.map((b) => `

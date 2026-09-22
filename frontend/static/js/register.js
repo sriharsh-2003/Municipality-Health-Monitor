@@ -1,4 +1,4 @@
-/* register.js — Register Platform: submit new platform onboarding form. */
+/* register.js, Register Platform: submit new platform onboarding form. */
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("registerForm");

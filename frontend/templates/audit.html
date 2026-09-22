@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Audit Log — Municipality Digital Operations{% endblock %}
+{% block title %}Audit Log | Municipality Digital Operations{% endblock %}
 {% block page_title %}Audit Log{% endblock %}
 {% block page_crumb %}Incident records and raw activity history{% endblock %}
 
@@ -122,6 +122,13 @@
         <button type="submit" class="btn btn-primary" id="saveEditBtn"><span class="material-symbols-outlined">save</span>Save Correction</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="lightboxModal">
+  <div class="modal-box" style="position:relative; max-width:900px; padding:12px; background:rgba(22,5,20,0.92); border:none;">
+    <button class="btn btn-ghost btn-sm modal-close" id="closeLightbox" style="color:#fff;"><span class="material-symbols-outlined">close</span></button>
+    <img id="lightboxImage" src="" alt="Incident screenshot" style="width:100%; border-radius:10px; display:block;">
   </div>
 </div>
 {% endblock %}

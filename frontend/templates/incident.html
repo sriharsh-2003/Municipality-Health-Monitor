@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Add Incident — Municipality Digital Operations{% endblock %}
+{% block title %}Add Incident | Municipality Digital Operations{% endblock %}
 {% block page_title %}Add Incident{% endblock %}
 {% block page_crumb %}Report a status change for a platform{% endblock %}
 
@@ -7,17 +7,11 @@
 <div class="page-header">
   <div>
     <h1>Log an Incident</h1>
-    <p class="lede">Pick a platform, record what changed, attach screenshots if you have them — status updates everywhere automatically.</p>
+    <p class="lede">Pick a platform, record what changed, attach screenshots if you have them. Status updates everywhere automatically.</p>
   </div>
-</div>
-
-<div class="helper-banner">
-  <span class="material-symbols-outlined">info</span>
-  <div>Saving here updates the platform's live status, adds a full incident record to its Platform Details page, and feeds the dashboard's health trend — all in one step. Any screenshots you attach are auto-linked into the next status email for this platform.</div>
-</div>
-<div class="helper-banner" style="margin-top:-8px; margin-bottom:18px;">
-  <span class="material-symbols-outlined">badge</span>
-  <div>Reporting as <strong id="reportingAsLabel">—</strong>. Change your role/name in the top-right of the page if this isn't right.</div>
+  <div class="page-header-actions">
+    <span class="chip"><span class="material-symbols-outlined" style="font-size:15px;">badge</span>Reporting as <strong id="reportingAsLabel" style="margin-left:4px;">...</strong></span>
+  </div>
 </div>
 
 <form class="glass-card card-pad" id="incidentForm" style="max-width:860px;" enctype="multipart/form-data">
@@ -93,11 +87,11 @@
   </div>
 
   <div class="divider"></div>
-  <div class="card-head"><div><h2>Screenshots</h2><div class="desc">Up to 6 images — auto-attached to this incident and linked in status emails</div></div></div>
+  <div class="card-head"><div><h2>Screenshots</h2><div class="desc">Up to 6 images, auto-attached to this incident and linked in status emails</div></div></div>
   <div class="dropzone" id="dropzone">
     <span class="material-symbols-outlined">add_photo_alternate</span>
     <div class="dz-title">Drag screenshots here, or click to browse</div>
-    <div class="dz-hint">PNG, JPG, GIF or WEBP — up to 6 images</div>
+    <div class="dz-hint">PNG, JPG, GIF or WEBP, up to 6 images</div>
     <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none;">
   </div>
   <div class="thumb-grid" id="thumbGrid"></div>

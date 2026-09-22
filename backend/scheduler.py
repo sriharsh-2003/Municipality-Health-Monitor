@@ -116,7 +116,7 @@ def start_scheduler(store, get_smtp_config, xlsx_path=None, attachments_dir=None
         except Exception as exc:
             print(f"[{now.isoformat(timespec='seconds')}] Scheduled backup failed: {exc}")
 
-    # Checked hourly — interval_days is measured in whole days, so a minute-level check is unnecessary.
+    # Checked hourly, interval_days is measured in whole days, so a minute-level check is unnecessary.
     scheduler.add_job(backup_tick, "interval", minutes=60, id="backup_tick")
     scheduler.start()
     return scheduler

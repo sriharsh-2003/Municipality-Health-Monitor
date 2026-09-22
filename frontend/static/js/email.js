@@ -1,4 +1,4 @@
-/* email.js — Email Center: preview, in-place editing, send, automation settings. */
+/* email.js, Email Center: preview, in-place editing, send, automation settings. */
 
 let currentIframe = null;
 let isEditMode = false;
@@ -42,7 +42,7 @@ function setEditChip(editing) {
   const btn = document.getElementById("editToggleBtn");
   chip.style.display = "inline-flex";
   if (editing) {
-    chip.innerHTML = '<span class="status-dot degraded"></span>Editing — click into the preview to change text';
+    chip.innerHTML = '<span class="status-dot degraded"></span>Editing. Click into the preview to change text.';
     btn.innerHTML = '<span class="material-symbols-outlined">lock</span>Lock Preview';
   } else {
     chip.innerHTML = '<span class="status-dot healthy"></span>Preview locked';
@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await navigator.clipboard.writeText(html);
       showToast("HTML copied to clipboard.");
     } catch (e) {
-      showToast("Could not copy — select and copy manually.", true);
+      showToast("Could not copy. Select and copy manually.", true);
     }
   });
 
@@ -171,8 +171,8 @@ function updateAttachSummary() {
   const summary = document.getElementById("attachSummary");
   chip.textContent = `${selectedIncidentIds.size} selected`;
   summary.innerHTML = selectedIncidentIds.size
-    ? `<strong>${selectedIncidentIds.size} incident record(s)</strong> will be attached as a CSV on the next send.`
-    : "No specific incident records selected to attach. Use the <strong>Attach Records</strong> tab to pick specific ones as a CSV attachment.";
+    ? `<span class="material-symbols-outlined">attach_file</span><span><strong>${selectedIncidentIds.size} incident record(s)</strong> will be attached as a CSV on the next send.</span>`
+    : '<span class="material-symbols-outlined">attach_file</span><span>No incident records selected to attach. Use the <strong>Attach Records</strong> tab to pick specific ones as a CSV attachment.</span>';
 }
 
 function renderRecordsList() {
@@ -195,9 +195,9 @@ function renderRecordsList() {
       <td><input type="checkbox" class="record-checkbox" data-id="${inc.id}" ${selectedIncidentIds.has(inc.id) ? "checked" : ""} style="width:16px;height:16px;"></td>
       <td class="cell-primary">${escapeHtml(inc.project_name)}</td>
       <td>${healthBadge(inc.health)}</td>
-      <td>${escapeHtml(inc.severity || "—")}</td>
+      <td>${escapeHtml(inc.severity || "Not set")}</td>
       <td class="cell-muted">${escapeHtml((inc.timestamp || "").slice(0, 16).replace("T", " "))}</td>
-      <td class="cell-muted">${escapeHtml(inc.reported_by || "—")}</td>
+      <td class="cell-muted">${escapeHtml(inc.reported_by || "Not set")}</td>
     </tr>
   `).join("");
   body.querySelectorAll(".record-checkbox").forEach((cb) => {

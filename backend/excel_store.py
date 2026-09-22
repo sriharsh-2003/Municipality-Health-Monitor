@@ -240,7 +240,7 @@ class ExcelStore:
         state["cycle"] = int(state.get("cycle", 0)) + 1
         return state["cycle"]
 
-    def _append_snapshot(self, wb, cycle, save_after=True):
+    def _append_snapshot(self, wb, cycle, save_after=True, timestamp=None):
         ws = wb["Platforms"]
         healthy = warning = critical = total = 0
         for row in ws.iter_rows(min_row=2, values_only=True):
@@ -255,7 +255,8 @@ class ExcelStore:
             elif health == "Down":
                 critical += 1
         snaps = wb["Snapshots"]
-        snaps.append([datetime.now().isoformat(timespec="seconds"), cycle, healthy, warning, critical, total])
+        snap_time = timestamp or datetime.now().isoformat(timespec="seconds")
+        snaps.append([snap_time, cycle, healthy, warning, critical, total])
         if save_after:
             wb.save(self.xlsx_path)
         return {"healthy": healthy, "warning": warning, "critical": critical, "total": total}
@@ -412,7 +413,7 @@ class ExcelStore:
             incidents_ws.append([record.get(f, "") for f in INCIDENT_FIELDS])
 
             self._append_logs(wb, cycle, log_entries)
-            summary = self._append_snapshot(wb, cycle, save_after=False)
+            summary = self._append_snapshot(wb, cycle, save_after=False, timestamp=ts)
             wb.save(self.xlsx_path)
             self._write_state(state)
             return {"summary": summary, "incident_id": incident_id, "cycle": cycle}
@@ -445,7 +446,7 @@ class ExcelStore:
 
     def update_incident(self, incident_id, updates, changed_by):
         """Corrects a past incident record in place. Does NOT touch the
-        platform's live health/notes or write to the Logs sheet — this is
+        platform's live health/notes or write to the Logs sheet, this is
         for fixing a mistake in what was recorded, not a new status change."""
         with _lock:
             wb = self._open()

@@ -1,4 +1,4 @@
-/* audit.js — Audit Log: Incidents tab (searchable, editable, exportable)
+/* audit.js, Audit Log: Incidents tab (searchable, editable, exportable)
    and Field Changes tab (raw log, unchanged from before). */
 
 let allIncidents = [];
@@ -9,11 +9,53 @@ let editSelectedFiles = [];
 let editExistingScreenshots = [];
 let editIncidentIdCurrent = null;
 
+const STATUS_NEXT = { "Open": "Acknowledged", "Acknowledged": "In Progress", "In Progress": "Resolved" };
+const STATUS_NEXT_LABEL = { "Open": "Acknowledge", "Acknowledged": "Start Progress", "In Progress": "Mark Resolved" };
+const STATUS_NEXT_ICON = { "Open": "visibility", "Acknowledged": "engineering", "In Progress": "task_alt" };
+
 function severityBadgeClass(sev) {
   if (sev === "Critical" || sev === "High") return "badge-down";
   if (sev === "Medium") return "badge-degraded";
   if (sev === "Low") return "badge-healthy";
   return "badge-neutral";
+}
+
+function statusChipClass(status) {
+  if (status === "Resolved") return "badge-healthy";
+  if (status === "In Progress") return "badge-degraded";
+  return "badge-neutral";
+}
+
+function openLightbox(url) {
+  document.getElementById("lightboxImage").src = url;
+  document.getElementById("lightboxModal").classList.add("is-open");
+}
+
+function closeLightbox() {
+  document.getElementById("lightboxModal").classList.remove("is-open");
+  document.getElementById("lightboxImage").src = "";
+}
+
+function wireIncidentCardActions() {
+  document.querySelectorAll(".screenshot-trigger").forEach((btn) => {
+    btn.addEventListener("click", () => openLightbox(btn.dataset.url));
+  });
+  document.querySelectorAll(".status-action").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      const fd = new FormData();
+      fd.append("status", btn.dataset.nextStatus);
+      fd.append("changed_by", getOperatorName());
+      try {
+        await Api.updateIncident(btn.dataset.incidentId, fd);
+        showToast(`Status set to ${btn.dataset.nextStatus}.`);
+        loadIncidents();
+      } catch (err) {
+        showToast(err.message || "Could not update status.", true);
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 // ---------------------------------------------------------------- incidents tab
@@ -46,32 +88,42 @@ function renderIncidents() {
   }
 
   wrap.innerHTML = rows.map((inc) => {
+    const status = inc.status || "Open";
     const shots = (inc.screenshots || []).map((name) => {
       const url = `/attachments/${encodeURIComponent(inc.id)}/${encodeURIComponent(name)}`;
-      return `<a class="thumb-link" href="${url}" target="_blank"><img src="${url}" alt="Incident screenshot"></a>`;
+      return `<button type="button" class="thumb-link screenshot-trigger" data-url="${url}" style="border:1px solid var(--c-border); cursor:zoom-in; padding:0;"><img src="${url}" alt="Incident screenshot"></button>`;
     }).join("");
+    const nextStatus = STATUS_NEXT[status];
+    let actionsHtml = `<button class="btn btn-secondary btn-sm" onclick="openEditModal('${inc.id}')"><span class="material-symbols-outlined">edit</span>Correct this record</button>`;
+    if (nextStatus) {
+      actionsHtml += `<button class="btn btn-primary btn-sm status-action" data-incident-id="${inc.id}" data-next-status="${nextStatus}"><span class="material-symbols-outlined">${STATUS_NEXT_ICON[status]}</span>${STATUS_NEXT_LABEL[status]}</button>`;
+    }
+    if (status === "Resolved") {
+      actionsHtml += `<button class="btn btn-ghost btn-sm status-action" data-incident-id="${inc.id}" data-next-status="Open"><span class="material-symbols-outlined">replay</span>Reopen</button>`;
+    }
+    actionsHtml += `<a class="btn btn-ghost btn-sm" href="/platform/${encodeURIComponent(inc.platform_id)}"><span class="material-symbols-outlined">open_in_new</span>Open platform</a>`;
     return `
     <div class="incident-card">
       <div class="incident-card-head">
         ${healthBadge(inc.health)}
-        <span class="chip">${escapeHtml(inc.status || "Open")}</span>
+        <span class="badge ${statusChipClass(status)}">${escapeHtml(status)}</span>
         ${inc.severity ? `<span class="badge ${severityBadgeClass(inc.severity)}">${escapeHtml(inc.severity)}</span>` : ""}
         ${inc.category ? `<span class="chip">${escapeHtml(inc.category)}</span>` : ""}
         <div class="incident-card-title" style="text-align:right; flex:1;">${escapeHtml(inc.project_name)}</div>
       </div>
       <div class="incident-card-meta">
-        ${escapeHtml((inc.timestamp || "").slice(0, 16).replace("T", " "))} · ${escapeHtml(inc.reported_by || "Reporter")}
-        ${inc.edited_by ? ` · edited by ${escapeHtml(inc.edited_by)}` : ""}
+        ${escapeHtml((inc.timestamp || "").slice(0, 16).replace("T", " "))}, ${escapeHtml(inc.reported_by || "Reporter")}
+        ${inc.edited_by ? `, edited by ${escapeHtml(inc.edited_by)}` : ""}
       </div>
       <div class="incident-card-body">${escapeHtml(inc.notes || "No details provided.")}</div>
       ${inc.resolution_notes ? `<div class="incident-card-resolution"><strong>Resolution:</strong> ${escapeHtml(inc.resolution_notes)}</div>` : ""}
       ${shots ? `<div class="thumb-row" style="margin-top:10px;">${shots}</div>` : ""}
-      <div style="margin-top:10px; display:flex; gap:8px;">
-        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${inc.id}')"><span class="material-symbols-outlined">edit</span>Correct this record</button>
-        <a class="btn btn-ghost btn-sm" href="/platform/${encodeURIComponent(inc.platform_id)}"><span class="material-symbols-outlined">open_in_new</span>Open platform</a>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        ${actionsHtml}
       </div>
     </div>`;
   }).join("");
+  wireIncidentCardActions();
 }
 
 // ---------------------------------------------------------------- edit modal
@@ -166,9 +218,9 @@ function renderFieldLogs() {
       <td class="cell-muted">${escapeHtml(l.timestamp)}</td>
       <td class="cell-primary">${escapeHtml(l.project_name || l.platform_id)}</td>
       <td><span class="chip">${escapeHtml(l.field)}</span></td>
-      <td class="cell-muted">${escapeHtml(l.old_value ?? "—")}</td>
-      <td>${escapeHtml(l.new_value ?? "—")}</td>
-      <td class="cell-muted">${escapeHtml(l.changed_by || "—")}</td>
+      <td class="cell-muted">${escapeHtml(l.old_value ?? "Not set")}</td>
+      <td>${escapeHtml(l.new_value ?? "Not set")}</td>
+      <td class="cell-muted">${escapeHtml(l.changed_by || "Not set")}</td>
       <td class="cell-muted">${escapeHtml(l.cycle)}</td>
     </tr>
   `).join("");
@@ -216,6 +268,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("closeEditModal").addEventListener("click", closeEditModal);
   document.getElementById("cancelEditBtn").addEventListener("click", closeEditModal);
   document.getElementById("editModal").addEventListener("click", (e) => { if (e.target.id === "editModal") closeEditModal(); });
+
+  document.getElementById("closeLightbox").addEventListener("click", closeLightbox);
+  document.getElementById("lightboxModal").addEventListener("click", (e) => { if (e.target.id === "lightboxModal") closeLightbox(); });
 
   const editDropzone = document.getElementById("editDropzone");
   const editFileInput = document.getElementById("editFileInput");

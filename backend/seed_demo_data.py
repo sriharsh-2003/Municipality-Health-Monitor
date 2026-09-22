@@ -131,9 +131,6 @@ def main():
                      "health": "Healthy" if final_status == "Resolved" else health},
                     random.choice(REPORTERS),
                 )
-                if final_status == "Resolved":
-                    store.save_platforms([{"id": platform["id"], "health": "Healthy",
-                                            "notes": "Back to normal after resolution."}], "System")
             elif age_days == 1 and random.random() < 0.5:
                 store.update_incident(result["incident_id"], {"status": "Acknowledged"}, random.choice(REPORTERS))
 

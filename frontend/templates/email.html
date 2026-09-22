@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Email Center — Municipality Digital Operations{% endblock %}
+{% block title %}Email Center | Municipality Digital Operations{% endblock %}
 {% block page_title %}Email Center{% endblock %}
 {% block page_crumb %}Executive status reports{% endblock %}
 
@@ -7,7 +7,7 @@
 <div class="page-header">
   <div>
     <h1>Email Center</h1>
-    <p class="lede">Generate the executive status report, preview it exactly as it will render, and send it — now or on a schedule.</p>
+    <p class="lede">Generate the executive status report, preview it exactly as it will render, and send it now or on a schedule.</p>
   </div>
 </div>
 
@@ -29,17 +29,9 @@
         <button class="btn btn-secondary" id="copyHtmlBtn"><span class="material-symbols-outlined">content_copy</span>Copy HTML</button>
         <button class="btn btn-primary" id="sendBtn"><span class="material-symbols-outlined">send</span>Send Now</button>
       </div>
-      <div class="helper-banner" style="margin-top:16px;">
-        <span class="material-symbols-outlined">lock</span>
-        <div>Sending requires SMTP to be configured. <a href="/smtp-settings" style="text-decoration:underline;">Set it up here</a> if you haven't yet.</div>
-      </div>
-      <div class="helper-banner" style="margin-top:10px;">
-        <span class="material-symbols-outlined">image</span>
-        <div>Any screenshots attached to a platform's latest incident (via Add Incident) are pulled in and linked automatically next to that platform in the report — nothing to attach manually here.</div>
-      </div>
-      <div class="helper-banner" style="margin-top:10px;">
+      <div class="inline-status" id="attachSummary" style="margin-top:14px;">
         <span class="material-symbols-outlined">attach_file</span>
-        <div id="attachSummary">No specific incident records selected to attach. Use the <strong>Attach Records</strong> tab to pick specific ones as a CSV attachment.</div>
+        <span>No incident records selected to attach. Use the <strong>Attach Records</strong> tab to pick specific ones as a CSV attachment.</span>
       </div>
     </div>
 

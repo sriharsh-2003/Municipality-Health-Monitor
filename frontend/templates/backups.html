@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Backups — Municipality Digital Operations{% endblock %}
+{% block title %}Backups | Municipality Digital Operations{% endblock %}
 {% block page_title %}Backups{% endblock %}
 {% block page_crumb %}Data protection{% endblock %}
 
@@ -7,7 +7,7 @@
 <div class="page-header">
   <div>
     <h1>Backups</h1>
-    <p class="lede">A backup is a compressed copy of the workbook and every screenshot — enough to fully restore the app's data.</p>
+    <p class="lede">A backup is a compressed copy of the workbook and every screenshot, enough to fully restore the app's data.</p>
   </div>
   <div class="page-header-actions">
     <button class="btn btn-primary" id="backupNowBtn"><span class="material-symbols-outlined">backup</span>Backup Now</button>
@@ -43,7 +43,7 @@
     <div class="card-head"><div><h2>How This Works</h2></div></div>
     <div style="font-size:13px; color:var(--c-on-surface-var); line-height:1.7;">
       <p>Each backup is a single <code>.zip</code> file named with the exact date and time it was made, e.g. <code>platform-health-backup_2026-09-21_143000.zip</code>, so they sort chronologically and never overwrite each other.</p>
-      <p style="margin-top:10px;">The 30 most recent backups are kept automatically — older ones are removed on a schedule so backups don't quietly fill up the laptop's disk over months of use.</p>
+      <p style="margin-top:10px;">The 30 most recent backups are kept automatically. Older ones are removed on a schedule so backups don't quietly fill up the laptop's disk over months of use.</p>
       <p style="margin-top:10px;">To restore one: unzip it, then copy <code>data/platform_health.xlsx</code> and the <code>data/attachments</code> folder from inside it back into this app's <code>data/</code> folder (with the app closed).</p>
     </div>
   </div>
