@@ -148,6 +148,8 @@ class ExcelStore:
             "email_signature_name": "",
             "email_signature_title": "",
             "email_signature_org": "",
+            "default_report_type": "daily",
+            "email_tagline": "",
         }
         stored = self._read_state().get("app_settings", {})
         return {**defaults, **stored}
@@ -398,16 +400,22 @@ class ExcelStore:
             incident_id = forced_id or ("inc_" + str(int(datetime.now().timestamp() * 1000))[-10:])
             ts = timestamp or datetime.now().isoformat(timespec="seconds")
             incidents_ws = wb["Incidents"]
+            incident_health = incident.get("health", current.get("health"))
+            # A "Healthy" entry is not an active problem, so it does not go
+            # through Acknowledged / In Progress / Resolved. It is recorded
+            # as already Resolved (nothing to work through), matching how
+            # incident management treats a recovery note versus a fault.
+            resolved_status = "Resolved" if incident_health == "Healthy" else (incident.get("status") or "Open")
             record = {
                 "id": incident_id, "platform_id": platform_id, "project_name": current.get("project_name"),
                 "cycle": cycle, "timestamp": ts, "reported_by": changed_by,
                 "severity": incident.get("severity", ""), "category": incident.get("category", ""),
                 "affected_component": incident.get("affected_component", ""),
-                "health": incident.get("health", current.get("health")),
+                "health": incident_health,
                 "notes": incident.get("notes", ""), "resolution_notes": incident.get("resolution_notes", ""),
                 "eta": incident.get("eta", ""),
                 "screenshots": json.dumps(incident.get("screenshots") or []),
-                "status": incident.get("status") or "Open",
+                "status": resolved_status,
                 "edited_at": "", "edited_by": "",
             }
             incidents_ws.append([record.get(f, "") for f in INCIDENT_FIELDS])
@@ -445,35 +453,53 @@ class ExcelStore:
         return None
 
     def update_incident(self, incident_id, updates, changed_by):
-        """Corrects a past incident record in place. Does NOT touch the
-        platform's live health/notes or write to the Logs sheet, this is
-        for fixing a mistake in what was recorded, not a new status change."""
+        """Corrects a past incident record in place. Status and health
+        changes are also written to the Logs sheet, same as any other
+        field change, so moving an incident through its workflow shows up
+        in the field-level audit trail instead of only on the incident
+        record itself."""
         with _lock:
             wb = self._open()
             if "Incidents" not in wb.sheetnames:
                 raise ValueError("incident not found")
             ws = wb["Incidents"]
             row_idx = None
+            current = None
             for idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
                 if row[0].value == incident_id:
                     row_idx = idx
+                    current = {f: row[i].value for i, f in enumerate(INCIDENT_FIELDS)}
                     break
             if row_idx is None:
                 raise ValueError("incident not found")
 
             editable = ("severity", "category", "affected_component", "health", "notes",
                         "resolution_notes", "eta", "status", "screenshots", "timestamp")
+            log_entries = []
             for field in editable:
                 if field in updates:
                     value = updates[field]
                     if field == "screenshots":
                         value = json.dumps(value or [])
+                    if field in ("status", "health") and str(value) != str(current.get(field, "")):
+                        log_entries.append({
+                            "platform_id": current.get("platform_id"), "project_name": current.get("project_name"),
+                            "field": field, "old_value": current.get(field, ""), "new_value": value,
+                            "changed_by": changed_by,
+                        })
                     col = INCIDENT_FIELDS.index(field) + 1
                     ws.cell(row=row_idx, column=col, value=value)
 
             ws.cell(row=row_idx, column=INCIDENT_FIELDS.index("edited_at") + 1,
                     value=datetime.now().isoformat(timespec="seconds"))
             ws.cell(row=row_idx, column=INCIDENT_FIELDS.index("edited_by") + 1, value=changed_by)
+
+            if log_entries:
+                state = self._read_state()
+                cycle = self._next_cycle(state)
+                self._append_logs(wb, cycle, log_entries)
+                self._write_state(state)
+
             wb.save(self.xlsx_path)
         return self.get_incident(incident_id)
 

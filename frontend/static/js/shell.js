@@ -81,15 +81,15 @@
   refreshIdentitySummary();
 })();
 
-let _toastTimer = null;
+let dismissTimer = null;
 function showToast(message, isError) {
   const el = document.getElementById("toast");
   if (!el) return;
   el.textContent = message;
   el.classList.toggle("is-error", !!isError);
   el.classList.add("is-visible");
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove("is-visible"), 3200);
+  clearTimeout(dismissTimer);
+  dismissTimer = setTimeout(() => el.classList.remove("is-visible"), 3200);
 }
 
 function escapeHtml(str) {
@@ -146,4 +146,98 @@ function showHint(id, message, icon) {
   };
   el.querySelector(".hint-toast-close").addEventListener("click", remove);
   dismissTimer = setTimeout(remove, 9000);
+}
+
+/* ---------------------------------------------------------------- resolve modal
+   Used wherever an incident's status is moved to Resolved (Platform
+   Details, Audit Log). Offers to also set the platform back to Healthy,
+   and afterward offers quick links to log a follow-up incident or go look
+   at the platform, instead of just silently updating a status chip. */
+function openResolveModal({ incidentId, platformId, platformName, resolutionNotes, onResolved }) {
+  let overlay = document.getElementById("resolveModalOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "resolveModalOverlay";
+    overlay.className = "modal-overlay";
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:460px; position:relative;">
+      <button class="btn btn-ghost btn-sm modal-close" id="resolveModalClose" type="button"><span class="material-symbols-outlined">close</span></button>
+      <h2 style="font-size:16px; margin-bottom:4px;">Resolve Incident</h2>
+      <p style="font-size:12.5px; color:var(--c-on-surface-var); margin-bottom:16px;">${escapeHtml(platformName)}</p>
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+          <input type="checkbox" id="resolveSetHealthy" checked style="width:16px;height:16px;">
+          Also set this platform's status back to Healthy
+        </label>
+        <div class="hint">Uncheck this if the platform still has a separate, unrelated issue.</div>
+      </div>
+      <div class="field">
+        <label>Resolution notes</label>
+        <textarea class="input" id="resolveNotesInput" placeholder="What fixed it, or the outcome">${escapeHtml(resolutionNotes || "")}</textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="resolveModalCancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="resolveModalConfirm" type="button"><span class="material-symbols-outlined">task_alt</span>Confirm Resolution</button>
+      </div>
+    </div>
+  `;
+  overlay.classList.add("is-open");
+
+  const close = () => overlay.classList.remove("is-open");
+  overlay.querySelector("#resolveModalClose").addEventListener("click", close);
+  overlay.querySelector("#resolveModalCancel").addEventListener("click", close);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+  overlay.querySelector("#resolveModalConfirm").addEventListener("click", async () => {
+    const btn = overlay.querySelector("#resolveModalConfirm");
+    btn.disabled = true;
+    const setHealthy = overlay.querySelector("#resolveSetHealthy").checked;
+    const notes = overlay.querySelector("#resolveNotesInput").value;
+    try {
+      const fd = new FormData();
+      fd.append("status", "Resolved");
+      fd.append("resolution_notes", notes);
+      fd.append("changed_by", getOperatorName());
+      await Api.updateIncident(incidentId, fd);
+      if (setHealthy) {
+        await Api.updatePlatform(platformId, { health: "Healthy" }, getOperatorName());
+      }
+      close();
+      showResolvedFollowUp(platformId, platformName);
+      if (onResolved) onResolved();
+    } catch (err) {
+      showToast(err.message || "Could not resolve incident.", true);
+      btn.disabled = false;
+    }
+  });
+}
+
+function showResolvedFollowUp(platformId, platformName) {
+  let stack = document.getElementById("hintStack");
+  if (!stack) {
+    stack = document.createElement("div");
+    stack.id = "hintStack";
+    stack.className = "hint-stack";
+    document.body.appendChild(stack);
+  }
+  const el = document.createElement("div");
+  el.className = "hint-toast";
+  el.innerHTML = `
+    <span class="material-symbols-outlined">task_alt</span>
+    <div class="hint-toast-text">
+      Incident resolved for ${escapeHtml(platformName)}.
+      <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="/incident?platform=${encodeURIComponent(platformId)}" class="btn btn-secondary btn-sm">Log Follow-up</a>
+        <a href="/platform/${encodeURIComponent(platformId)}" class="btn btn-ghost btn-sm">View Platform</a>
+      </div>
+    </div>
+    <button class="hint-toast-close" type="button" aria-label="Dismiss"><span class="material-symbols-outlined">close</span></button>
+  `;
+  stack.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("is-visible"));
+  const remove = () => { el.classList.remove("is-visible"); setTimeout(() => el.remove(), 200); };
+  el.querySelector(".hint-toast-close").addEventListener("click", remove);
+  setTimeout(remove, 15000);
 }

@@ -106,11 +106,13 @@ function renderIncidentCard(inc) {
 
   const nextStatus = STATUS_NEXT[status];
   let actionsHtml = "";
-  if (nextStatus) {
-    actionsHtml += `<button class="btn btn-primary btn-sm status-action" data-incident-id="${inc.id}" data-next-status="${nextStatus}"><span class="material-symbols-outlined">${STATUS_NEXT_ICON[status]}</span>${STATUS_NEXT_LABEL[status]}</button>`;
-  }
-  if (status === "Resolved") {
-    actionsHtml += `<button class="btn btn-ghost btn-sm status-action" data-incident-id="${inc.id}" data-next-status="Open"><span class="material-symbols-outlined">replay</span>Reopen</button>`;
+  if (inc.health !== "Healthy") {
+    if (nextStatus) {
+      actionsHtml += `<button class="btn btn-primary btn-sm status-action" data-incident-id="${inc.id}" data-next-status="${nextStatus}" data-platform-id="${inc.platform_id}" data-platform-name="${escapeHtml(inc.project_name || "")}" data-resolution-notes="${escapeHtml(inc.resolution_notes || "")}"><span class="material-symbols-outlined">${STATUS_NEXT_ICON[status]}</span>${STATUS_NEXT_LABEL[status]}</button>`;
+    }
+    if (status === "Resolved") {
+      actionsHtml += `<button class="btn btn-ghost btn-sm status-action" data-incident-id="${inc.id}" data-next-status="Open"><span class="material-symbols-outlined">replay</span>Reopen</button>`;
+    }
   }
 
   return `
@@ -136,6 +138,16 @@ function wireIncidentCardActions() {
   });
   document.querySelectorAll(".status-action").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      if (btn.dataset.nextStatus === "Resolved") {
+        openResolveModal({
+          incidentId: btn.dataset.incidentId,
+          platformId: btn.dataset.platformId || PLATFORM_ID,
+          platformName: btn.dataset.platformName || document.getElementById("platformName").textContent,
+          resolutionNotes: btn.dataset.resolutionNotes || "",
+          onResolved: loadPlatformDetail,
+        });
+        return;
+      }
       btn.disabled = true;
       const fd = new FormData();
       fd.append("status", btn.dataset.nextStatus);
@@ -168,16 +180,39 @@ function renderTimeline(logs) {
     wrap.innerHTML = '<div class="empty-state"><span class="material-symbols-outlined">history_toggle_off</span><div>No field changes recorded yet.</div></div>';
     return;
   }
-  wrap.innerHTML = logs.slice(0, 40).map((l) => `
+
+  // Group same-action field changes (identical timestamp, cycle, reporter)
+  // into one entry instead of one row per field, so one incident creation
+  // that touched both health and notes reads as one activity, not two.
+  const groups = new Map();
+  const order = [];
+  logs.forEach((l) => {
+    const key = `${l.timestamp}__${l.cycle}__${l.changed_by}`;
+    if (!groups.has(key)) {
+      groups.set(key, { timestamp: l.timestamp, changed_by: l.changed_by, cycle: l.cycle, fields: [] });
+      order.push(key);
+    }
+    groups.get(key).fields.push(l);
+  });
+
+  wrap.innerHTML = order.slice(0, 40).map((key) => {
+    const g = groups.get(key);
+    const diffRows = g.fields.map((l) => `
+      <div class="activity-diff-row">
+        <span class="activity-diff-field">${escapeHtml(l.field)}</span>
+        <span>${escapeHtml(l.old_value ?? "Not set")} became ${escapeHtml(l.new_value ?? "Not set")}</span>
+      </div>
+    `).join("");
+    return `
     <div class="timeline-item">
       <div class="timeline-dot"></div>
       <div class="timeline-body">
-        <div class="timeline-title">${escapeHtml(l.field)} changed</div>
-        <div class="timeline-meta">${escapeHtml(l.changed_by || "Reporter")}, ${escapeHtml(l.timestamp || "")}, cycle ${escapeHtml(l.cycle)}</div>
-        <div class="timeline-diff">${escapeHtml(l.old_value ?? "not set")} became ${escapeHtml(l.new_value ?? "not set")}</div>
+        <div class="timeline-meta">${escapeHtml(g.changed_by || "Reporter")}, ${escapeHtml((g.timestamp || "").slice(0, 16).replace("T", " "))}, cycle ${escapeHtml(g.cycle)}</div>
+        <div class="activity-diff-list">${diffRows}</div>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -13,7 +13,7 @@ point the computer's own task scheduler at the /api/email/send endpoint
 instead, which does not need this background job at all.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -30,7 +30,30 @@ def _weekday_matches(frequency, now):
         return now.weekday() < 5
     if frequency == "weekly":
         return now.weekday() == 6
+    if frequency == "monthly":
+        return now.day == 1
     return False
+
+
+def _report_type_for_frequency(frequency):
+    if frequency == "weekly":
+        return "weekly"
+    if frequency == "monthly":
+        return "monthly"
+    return "daily"
+
+
+def _range_and_label(report_type, now):
+    if report_type == "weekly":
+        start = now - timedelta(days=7)
+        label = f"{start.strftime('%d %b')} to {now.strftime('%d %b %Y')}"
+    elif report_type == "monthly":
+        start = now - timedelta(days=30)
+        label = now.strftime("%B %Y")
+    else:
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        label = now.strftime("%A, %d %b %Y")
+    return start, label
 
 
 def _base_url():
@@ -69,24 +92,25 @@ def start_scheduler(store, get_smtp_config, xlsx_path=None, attachments_dir=None
         try:
             app_settings = store.get_app_settings()
             platforms = store.list_platforms()
-            incidents_by_platform = {}
-            for inc in store.list_incidents(limit=500):
-                if inc.get("screenshots") and inc["platform_id"] not in incidents_by_platform:
-                    incidents_by_platform[inc["platform_id"]] = inc
+            report_type = _report_type_for_frequency(settings.get("frequency", "daily"))
+            start, period_label = _range_and_label(report_type, now)
+            incidents = [i for i in store.list_incidents(limit=100000) if i.get("timestamp", "") >= start.isoformat()]
+            incidents.sort(key=lambda i: i.get("timestamp", ""), reverse=True)
             built = email_builder.build_email(
-                platforms, sender_name=settings.get("sender", "Reporter"),
-                incidents_by_platform=incidents_by_platform, base_url=_base_url(),
+                platforms, incidents=incidents, report_type=report_type, period_label=period_label,
+                sender_name=settings.get("sender", "Reporter"), base_url=_base_url(),
                 sender_title=app_settings.get("email_signature_title", ""),
                 sender_org=app_settings.get("email_signature_org", ""),
+                tagline=app_settings.get("email_tagline", ""),
             )
             smtp_config = get_smtp_config()
+            subject = f"Municipality Digital Operations, {email_builder.REPORT_TITLES.get(report_type, 'Status Update')}"
             mailer.send_email(
-                smtp_config, recipient,
-                "Municipality Digital Operations Status Update",
+                smtp_config, recipient, subject,
                 built["html"], built["text"],
             )
             store.set_last_automated_send(today_key)
-            print(f"[{now.isoformat(timespec='seconds')}] Automated report sent to {recipient}.")
+            print(f"[{now.isoformat(timespec='seconds')}] Automated {report_type} report sent to {recipient}.")
         except Exception as exc:
             print(f"[{now.isoformat(timespec='seconds')}] Automated send failed: {exc}")
 

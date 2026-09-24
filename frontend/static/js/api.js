@@ -64,10 +64,10 @@ const Api = (() => {
     getHealthTrend: (limit = 20) => request(`/api/charts/health-trend?limit=${limit}`),
     getMetrics: () => request("/api/charts/metrics"),
 
-    getEmailPreview: (sender, recipient) =>
-      request(`/api/email/preview?sender=${encodeURIComponent(sender)}&recipient=${encodeURIComponent(recipient)}`),
-    sendEmail: (recipient, sender, subject, html, text, attachIncidentIds) =>
-      request("/api/email/send", { method: "POST", body: JSON.stringify({ recipient, sender, subject, html, text, attach_incident_ids: attachIncidentIds || [] }) }),
+    getEmailPreview: (sender, recipient, reportType) =>
+      request(`/api/email/preview?sender=${encodeURIComponent(sender)}&recipient=${encodeURIComponent(recipient)}&report_type=${encodeURIComponent(reportType || "daily")}`),
+    sendEmail: (recipient, sender, subject, html, text, attachIncidentIds, reportType) =>
+      request("/api/email/send", { method: "POST", body: JSON.stringify({ recipient, sender, subject, html, text, attach_incident_ids: attachIncidentIds || [], report_type: reportType || "daily" }) }),
 
     getAutomation: () => request("/api/automation"),
     saveAutomation: (settings) => request("/api/automation", { method: "POST", body: JSON.stringify(settings) }),

@@ -5,18 +5,25 @@ let isEditMode = false;
 let originalGeneratedHtml = null;
 let allIncidentsForAttach = [];
 let selectedIncidentIds = new Set();
+let currentReportType = "daily";
+
+const REPORT_TYPE_HINTS = {
+  daily: "A table of today's incidents, plus current platform status.",
+  weekly: "This week's totals by status and severity, plus the week's incident table.",
+  monthly: "A monthly rollup: totals, resolution rate, and incidents grouped by platform.",
+};
 
 async function generatePreview() {
   const sender = document.getElementById("senderInput").value.trim() || getOperatorName();
   const recipient = document.getElementById("recipientInput").value.trim() || "Manager";
   const frame = document.getElementById("previewFrame");
-  frame.innerHTML = '<div class="empty-state"><span class="material-symbols-outlined">hourglass_top</span><div>Building preview…</div></div>';
+  frame.innerHTML = '<div class="empty-state"><span class="material-symbols-outlined">hourglass_top</span><div>Building preview</div></div>';
   document.getElementById("editToggleBtn").style.display = "none";
   document.getElementById("editStateChip").style.display = "none";
   isEditMode = false;
 
   try {
-    const built = await Api.getEmailPreview(sender, recipient);
+    const built = await Api.getEmailPreview(sender, recipient, currentReportType);
     originalGeneratedHtml = built.html;
 
     const iframe = document.createElement("iframe");
@@ -73,6 +80,15 @@ function getCurrentHtml() {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("senderInput").value = getOperatorName();
 
+  document.querySelectorAll("#reportTypeTabs .pill-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#reportTypeTabs .pill-tab").forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      currentReportType = tab.dataset.type;
+      document.getElementById("reportTypeHint").textContent = REPORT_TYPE_HINTS[currentReportType];
+    });
+  });
+
   document.querySelectorAll("#emailTabs .pill-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       document.querySelectorAll("#emailTabs .pill-tab").forEach((t) => t.classList.remove("is-active"));
@@ -111,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("sendBtn");
     btn.disabled = true;
     try {
-      await Api.sendEmail(recipient, sender, subject, html, null, Array.from(selectedIncidentIds));
+      await Api.sendEmail(recipient, sender, subject, html, null, Array.from(selectedIncidentIds), currentReportType);
       showToast(`Report sent to ${recipient}.`);
     } catch (err) {
       showToast(err.message || "Could not send email. Check SMTP Settings.", true);

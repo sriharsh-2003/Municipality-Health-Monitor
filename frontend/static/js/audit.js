@@ -42,6 +42,16 @@ function wireIncidentCardActions() {
   });
   document.querySelectorAll(".status-action").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      if (btn.dataset.nextStatus === "Resolved") {
+        openResolveModal({
+          incidentId: btn.dataset.incidentId,
+          platformId: btn.dataset.platformId,
+          platformName: btn.dataset.platformName,
+          resolutionNotes: btn.dataset.resolutionNotes || "",
+          onResolved: loadIncidents,
+        });
+        return;
+      }
       btn.disabled = true;
       const fd = new FormData();
       fd.append("status", btn.dataset.nextStatus);
@@ -95,11 +105,13 @@ function renderIncidents() {
     }).join("");
     const nextStatus = STATUS_NEXT[status];
     let actionsHtml = `<button class="btn btn-secondary btn-sm" onclick="openEditModal('${inc.id}')"><span class="material-symbols-outlined">edit</span>Correct this record</button>`;
-    if (nextStatus) {
-      actionsHtml += `<button class="btn btn-primary btn-sm status-action" data-incident-id="${inc.id}" data-next-status="${nextStatus}"><span class="material-symbols-outlined">${STATUS_NEXT_ICON[status]}</span>${STATUS_NEXT_LABEL[status]}</button>`;
-    }
-    if (status === "Resolved") {
-      actionsHtml += `<button class="btn btn-ghost btn-sm status-action" data-incident-id="${inc.id}" data-next-status="Open"><span class="material-symbols-outlined">replay</span>Reopen</button>`;
+    if (inc.health !== "Healthy") {
+      if (nextStatus) {
+        actionsHtml += `<button class="btn btn-primary btn-sm status-action" data-incident-id="${inc.id}" data-next-status="${nextStatus}" data-platform-id="${inc.platform_id}" data-platform-name="${escapeHtml(inc.project_name || "")}" data-resolution-notes="${escapeHtml(inc.resolution_notes || "")}"><span class="material-symbols-outlined">${STATUS_NEXT_ICON[status]}</span>${STATUS_NEXT_LABEL[status]}</button>`;
+      }
+      if (status === "Resolved") {
+        actionsHtml += `<button class="btn btn-ghost btn-sm status-action" data-incident-id="${inc.id}" data-next-status="Open"><span class="material-symbols-outlined">replay</span>Reopen</button>`;
+      }
     }
     actionsHtml += `<a class="btn btn-ghost btn-sm" href="/platform/${encodeURIComponent(inc.platform_id)}"><span class="material-symbols-outlined">open_in_new</span>Open platform</a>`;
     return `
@@ -198,7 +210,7 @@ async function loadAuditFields() {
 }
 
 function renderFieldLogs() {
-  const body = document.getElementById("auditBody");
+  const wrap = document.getElementById("fieldActivityList");
   const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
   let rows = allLogs.filter((l) => {
     if (currentFieldFilter !== "all" && l.field !== currentFieldFilter) return false;
@@ -210,20 +222,43 @@ function renderFieldLogs() {
     );
   });
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="7" class="empty-state"><span class="material-symbols-outlined">history_toggle_off</span><div>No matching log entries.</div></td></tr>';
+    wrap.innerHTML = '<div class="empty-state"><span class="material-symbols-outlined">history_toggle_off</span><div>No matching log entries.</div></div>';
     return;
   }
-  body.innerHTML = rows.map((l) => `
-    <tr>
-      <td class="cell-muted">${escapeHtml(l.timestamp)}</td>
-      <td class="cell-primary">${escapeHtml(l.project_name || l.platform_id)}</td>
-      <td><span class="chip">${escapeHtml(l.field)}</span></td>
-      <td class="cell-muted">${escapeHtml(l.old_value ?? "Not set")}</td>
-      <td>${escapeHtml(l.new_value ?? "Not set")}</td>
-      <td class="cell-muted">${escapeHtml(l.changed_by || "Not set")}</td>
-      <td class="cell-muted">${escapeHtml(l.cycle)}</td>
-    </tr>
-  `).join("");
+
+  // Several fields can change in the same action (registering a platform
+  // with a non-Healthy status logs both "health" and "notes" at once, for
+  // example). Group those into one activity instead of separate rows with
+  // an identical timestamp, which reads as duplicated rather than related.
+  const groups = new Map();
+  const order = [];
+  rows.forEach((l) => {
+    const key = `${l.timestamp}__${l.platform_id}__${l.cycle}__${l.changed_by}`;
+    if (!groups.has(key)) {
+      groups.set(key, { timestamp: l.timestamp, project_name: l.project_name || l.platform_id, changed_by: l.changed_by, cycle: l.cycle, fields: [] });
+      order.push(key);
+    }
+    groups.get(key).fields.push(l);
+  });
+
+  wrap.innerHTML = order.map((key) => {
+    const g = groups.get(key);
+    const diffRows = g.fields.map((l) => `
+      <div class="activity-diff-row">
+        <span class="activity-diff-field">${escapeHtml(l.field)}</span>
+        <span>${escapeHtml(l.old_value ?? "Not set")} became ${escapeHtml(l.new_value ?? "Not set")}</span>
+      </div>
+    `).join("");
+    return `
+      <div class="activity-card">
+        <div class="activity-card-head">
+          <span class="activity-card-title">${escapeHtml(g.project_name)}</span>
+          <span class="activity-card-meta">${escapeHtml((g.timestamp || "").slice(0, 16).replace("T", " "))}, ${escapeHtml(g.changed_by || "Not set")}, cycle ${escapeHtml(g.cycle)}</span>
+        </div>
+        <div class="activity-diff-list">${diffRows}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 // ---------------------------------------------------------------- wiring

@@ -21,7 +21,16 @@
   <div class="grid-2">
     <div class="glass-card card-pad">
       <div class="card-head"><div><h2>Send Report</h2><div class="desc">Builds from live platform data</div></div></div>
-      <div class="field"><label>Subject</label><input class="input" id="subjectInput" placeholder="Municipality Digital Operations Status Update"></div>
+      <div class="field">
+        <label>Report type</label>
+        <div class="pill-tabs" id="reportTypeTabs">
+          <div class="pill-tab is-active" data-type="daily">Daily</div>
+          <div class="pill-tab" data-type="weekly">Weekly</div>
+          <div class="pill-tab" data-type="monthly">Monthly</div>
+        </div>
+        <div class="hint" id="reportTypeHint">A table of today's incidents, plus current platform status.</div>
+      </div>
+      <div class="field"><label>Subject</label><input class="input" id="subjectInput" placeholder="Leave blank to use the report's default subject"></div>
       <div class="field"><label>Recipient email <span class="req">*</span></label><input class="input" id="recipientInput" placeholder="manager@municipality.gov"></div>
       <div class="field"><label>Sender / reporter name</label><input class="input" id="senderInput" placeholder="Reporter"></div>
       <div class="form-actions" style="justify-content:flex-start; border-top:none; padding-top:6px;">

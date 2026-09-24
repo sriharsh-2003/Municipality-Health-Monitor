@@ -44,7 +44,7 @@
     <div class="toolbar">
       <div class="search-bar">
         <span class="material-symbols-outlined">search</span>
-        <input type="text" id="searchInput" placeholder="Search by platform, field, or reporter…">
+        <input type="text" id="searchInput" placeholder="Search by platform, field, or reporter">
       </div>
       <div class="pill-tabs" id="fieldFilter">
         <div class="pill-tab is-active" data-field="all">All fields</div>
@@ -52,16 +52,7 @@
         <div class="pill-tab" data-field="notes">Notes</div>
       </div>
     </div>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr><th>Timestamp</th><th>Platform</th><th>Field</th><th>Old Value</th><th>New Value</th><th>Reporter</th><th>Cycle</th></tr>
-        </thead>
-        <tbody id="auditBody">
-          <tr><td colspan="7" class="empty-state">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div id="fieldActivityList"><div class="empty-state">Loading</div></div>
   </div>
 </div>
 

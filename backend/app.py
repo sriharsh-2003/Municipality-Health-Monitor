@@ -581,17 +581,43 @@ def api_dashboard():
 
 # ------------------------------------------------------------------- email
 
+def _report_range_and_label(report_type, now=None):
+    """Returns (start_iso, period_label) for a report type. end is always
+    now, since a report always covers up to the moment it's built."""
+    now = now or datetime.now()
+    if report_type == "weekly":
+        start = now - timedelta(days=7)
+        label = f"{start.strftime('%d %b')} to {now.strftime('%d %b %Y')}"
+    elif report_type == "monthly":
+        start = now - timedelta(days=30)
+        label = now.strftime("%B %Y")
+    else:
+        report_type = "daily"
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        label = now.strftime("%A, %d %b %Y")
+    return start, label
+
+
+def _incidents_for_report(report_type):
+    start, period_label = _report_range_and_label(report_type)
+    incidents = [i for i in store.list_incidents(limit=100000) if i.get("timestamp", "") >= start.isoformat()]
+    incidents.sort(key=lambda i: i.get("timestamp", ""), reverse=True)
+    return incidents, period_label
+
+
 @app.route("/api/email/preview")
 def api_email_preview():
     sender = request.args.get("sender", "Reporter")
     recipient = request.args.get("recipient", "Manager")
+    report_type = request.args.get("report_type", "daily")
     settings = store.get_app_settings()
     platforms = store.list_platforms()
-    incidents_by_platform = _latest_incident_screenshots_by_platform()
+    incidents, period_label = _incidents_for_report(report_type)
     built = email_builder.build_email(
-        platforms, sender_name=sender, recipient_name=recipient,
-        incidents_by_platform=incidents_by_platform, base_url=request.host_url.rstrip("/"),
+        platforms, incidents=incidents, report_type=report_type, period_label=period_label,
+        sender_name=sender, recipient_name=recipient, base_url=request.host_url.rstrip("/"),
         sender_title=settings.get("email_signature_title", ""), sender_org=settings.get("email_signature_org", ""),
+        tagline=settings.get("email_tagline", ""),
     )
     return jsonify(built)
 
@@ -601,7 +627,8 @@ def api_email_send():
     body = request.get_json(force=True)
     recipient = body.get("recipient")
     sender = body.get("sender", "Reporter")
-    subject = (body.get("subject") or "").strip() or "Municipality Digital Operations Status Update"
+    report_type = body.get("report_type", "daily")
+    subject = (body.get("subject") or "").strip() or f"Municipality Digital Operations, {email_builder.REPORT_TITLES.get(report_type, 'Status Update')}"
     custom_html = body.get("html")
     attach_incident_ids = body.get("attach_incident_ids") or []
     if not recipient:
@@ -615,11 +642,12 @@ def api_email_send():
     else:
         settings = store.get_app_settings()
         platforms = store.list_platforms()
-        incidents_by_platform = _latest_incident_screenshots_by_platform()
+        incidents, period_label = _incidents_for_report(report_type)
         built = email_builder.build_email(
-            platforms, sender_name=sender, recipient_name=recipient,
-            incidents_by_platform=incidents_by_platform, base_url=request.host_url.rstrip("/"),
+            platforms, incidents=incidents, report_type=report_type, period_label=period_label,
+            sender_name=sender, recipient_name=recipient, base_url=request.host_url.rstrip("/"),
             sender_title=settings.get("email_signature_title", ""), sender_org=settings.get("email_signature_org", ""),
+            tagline=settings.get("email_tagline", ""),
         )
         html, text = built["html"], built["text"]
 
@@ -643,17 +671,6 @@ def api_email_send():
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
     return jsonify({"ok": True})
-
-
-def _latest_incident_screenshots_by_platform():
-    """Most recent incident with at least one screenshot, per platform.
-    Used to auto-link screenshots into the status email next to each
-    platform's issue writeup."""
-    result = {}
-    for inc in store.list_incidents(limit=500):
-        if inc.get("screenshots") and inc["platform_id"] not in result:
-            result[inc["platform_id"]] = inc
-    return result
 
 
 # -------------------------------------------------------------- automation
@@ -736,7 +753,7 @@ def api_get_app_settings():
 def api_save_app_settings():
     body = request.get_json(force=True)
     allowed = {"compress_screenshots", "default_reporter_name", "email_signature_name",
-               "email_signature_title", "email_signature_org"}
+               "email_signature_title", "email_signature_org", "default_report_type", "email_tagline"}
     settings = {k: v for k, v in body.items() if k in allowed}
     store.save_app_settings(settings)
     return jsonify({"ok": True})
