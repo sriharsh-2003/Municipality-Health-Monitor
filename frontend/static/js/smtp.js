@@ -77,6 +77,8 @@ async function loadAppSettings() {
     document.getElementById("defaultReporterName").value = s.default_reporter_name || "";
     document.getElementById("signatureTitle").value = s.email_signature_title || "";
     document.getElementById("signatureOrg").value = s.email_signature_org || "";
+    document.getElementById("defaultReportType").value = s.default_report_type || "daily";
+    document.getElementById("emailTagline").value = s.email_tagline || "";
   } catch (err) {
     showToast(err.message || "Could not load settings.", true);
   }
@@ -112,6 +114,23 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Signature settings saved.");
     } catch (err) {
       showToast(err.message || "Could not save signature settings.", true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("reportDefaultsForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("saveReportDefaultsBtn");
+    btn.disabled = true;
+    try {
+      await Api.saveAppSettings({
+        default_report_type: document.getElementById("defaultReportType").value,
+        email_tagline: document.getElementById("emailTagline").value.trim(),
+      });
+      showToast("Report defaults saved.");
+    } catch (err) {
+      showToast(err.message || "Could not save report defaults.", true);
     } finally {
       btn.disabled = false;
     }

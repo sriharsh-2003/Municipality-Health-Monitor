@@ -59,6 +59,24 @@
         <button type="submit" class="btn btn-primary btn-sm" id="saveSignatureBtn"><span class="material-symbols-outlined">save</span>Save</button>
       </div>
     </form>
+
+    <form class="glass-card card-pad" id="reportDefaultsForm">
+      <div class="card-head"><div><h2>Report Defaults</h2><div class="desc">Controls what the Email Center opens to and a line shown on every report</div></div></div>
+      <div class="field">
+        <label>Default report structure</label>
+        <select class="input" id="defaultReportType">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        <div class="hint">The report type pre-selected when the Email Center preview is opened.</div>
+      </div>
+      <div class="field"><label>Email tagline</label><input class="input" id="emailTagline" placeholder="e.g. Keeping municipal platforms running smoothly"></div>
+      <div class="hint" style="margin-top:-8px; margin-bottom:10px;">Optional line shown near the top of every generated report, under the title.</div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-sm" id="saveReportDefaultsBtn"><span class="material-symbols-outlined">save</span>Save</button>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}

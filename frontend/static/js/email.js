@@ -89,6 +89,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Pre-select the report type tab the operator set as default in Settings.
+  Api.getAppSettings().then((s) => {
+    const wanted = s.default_report_type || "daily";
+    const tabs = document.querySelectorAll("#reportTypeTabs .pill-tab");
+    const match = Array.from(tabs).find((t) => t.dataset.type === wanted);
+    if (match && wanted !== "daily") {
+      tabs.forEach((t) => t.classList.remove("is-active"));
+      match.classList.add("is-active");
+      currentReportType = wanted;
+      document.getElementById("reportTypeHint").textContent = REPORT_TYPE_HINTS[currentReportType];
+    }
+  }).catch(() => {});
+
   document.querySelectorAll("#emailTabs .pill-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       document.querySelectorAll("#emailTabs .pill-tab").forEach((t) => t.classList.remove("is-active"));
