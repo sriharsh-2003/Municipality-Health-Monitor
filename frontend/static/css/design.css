@@ -322,6 +322,7 @@ input, select, textarea { font-family: inherit; }
 .badge-degraded { background: var(--c-degraded-bg); color: var(--c-degraded); }
 .badge-down { background: var(--c-down-bg); color: var(--c-down); }
 .badge-neutral { background: var(--c-surface-low); color: var(--c-on-surface-var); }
+.badge-dev { background: var(--c-plum-100); color: var(--c-plum-700); }
 
 /* ---------------------------------------------------------------- forms */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

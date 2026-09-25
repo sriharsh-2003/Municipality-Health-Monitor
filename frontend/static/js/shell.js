@@ -106,6 +106,13 @@ function healthBadge(health) {
   return `<span class="badge ${cls}">${escapeHtml(health || "Unknown")}</span>`;
 }
 
+function stageBadge(stage) {
+  // Only rendered for the non-default case, a Running platform (the vast
+  // majority) doesn't need a badge cluttering every row.
+  if (stage !== "Under Development") return "";
+  return '<span class="badge badge-dev">Under Development</span>';
+}
+
 function timeAgoOrValue(v) {
   return v || "Not set";
 }

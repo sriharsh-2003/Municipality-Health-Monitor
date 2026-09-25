@@ -29,7 +29,7 @@ import backup as backup_module
 import email_builder
 import mailer
 from excel_store import (
-    ExcelStore, HEALTH_VALUES, SEVERITY_VALUES, INCIDENT_CATEGORIES, INCIDENT_STATUS_VALUES,
+    ExcelStore, HEALTH_VALUES, SEVERITY_VALUES, INCIDENT_CATEGORIES, INCIDENT_STATUS_VALUES, STAGE_VALUES,
 )
 from scheduler import start_scheduler
 
@@ -195,6 +195,10 @@ def api_create_platform():
         record["health"] = "Healthy"
     if record.get("health") != "Healthy" and not record.get("notes"):
         return jsonify({"error": "notes are required when status is not Healthy"}), 400
+    if record.get("stage") and record["stage"] not in STAGE_VALUES:
+        return jsonify({"error": "invalid stage value"}), 400
+    if not record.get("stage"):
+        record["stage"] = "Running"
 
     if not force:
         dup = store.find_duplicate_platform(record.get("project_name"), record.get("url", ""))
@@ -220,6 +224,8 @@ def api_update_platform(platform_id):
     if record.get("health") == "Degraded" or record.get("health") == "Down":
         if "notes" in record and not record.get("notes"):
             return jsonify({"error": "notes are required when status is not Healthy"}), 400
+    if record.get("stage") and record["stage"] not in STAGE_VALUES:
+        return jsonify({"error": "invalid stage value"}), 400
     summary = store.save_platforms([record], changed_by)
     return jsonify({"ok": True, "summary": summary})
 
@@ -480,7 +486,6 @@ def api_metrics():
 
 
 RANGE_PRESETS = {
-    "today": timedelta(days=1),
     "7d": timedelta(days=7),
     "30d": timedelta(days=30),
     "12m": timedelta(days=365),
@@ -498,6 +503,11 @@ def _resolve_range(range_key, start_param, end_param):
         except ValueError:
             start, end = None, now
         return start, end
+    if range_key == "today":
+        # Calendar-day start (midnight), not "24 hours ago". A rolling
+        # 24-hour window drifts across the day boundary, e.g. checking at
+        # 11pm would show mostly yesterday and miss most of today.
+        return now.replace(hour=0, minute=0, second=0, microsecond=0), now
     delta = RANGE_PRESETS.get(range_key, RANGE_PRESETS["7d"])
     return now - delta, now
 
@@ -530,24 +540,37 @@ def _rollup_daily(snapshots):
 def api_dashboard():
     """
     Everything the Dashboard Overview page needs for a given time window, in
-    one call. Current-status counts (healthy/warning/critical/total right
-    now) are always live, a platform only has one status at a time, so
-    "status as of last month" isn't a meaningful thing to show. Everything
-    else here (trend, incident count, recent incidents) is filtered to the
-    selected range.
+    one call. Current-status counts (healthy/warning/critical/total) are
+    live for every preset range, since every preset (Today, Week, Month,
+    Year, All Time) runs up to right now, so "status as of the end of the
+    range" and "status right now" are the same thing, a platform only has
+    one status at a time. The one case where that's not true is a Custom
+    range with an end date in the past: there, the KPI tiles and the
+    Status Split donut instead use the last recorded snapshot at or before
+    that end date, so picking a historical window shows what was actually
+    true then rather than silently showing today's live numbers.
     """
     range_key = request.args.get("range", "7d")
     start, end = _resolve_range(range_key, request.args.get("start"), request.args.get("end"))
+    now = datetime.now()
 
-    platforms = store.list_platforms()
-    current = store.summary()
-
-    snapshots = store.list_snapshots(limit=100000)
+    all_snapshots = store.list_snapshots(limit=100000)
+    snapshots = all_snapshots
     if start:
         snapshots = [s for s in snapshots if s.get("timestamp", "") >= start.isoformat()]
     if end:
         snapshots = [s for s in snapshots if s.get("timestamp", "") <= end.isoformat()]
     trend = _rollup_daily(snapshots)
+
+    is_historical_end = end is not None and (now - end).total_seconds() > 60
+    if is_historical_end:
+        as_of = [s for s in all_snapshots if s.get("timestamp", "") <= end.isoformat()]
+        current = (
+            {"total": as_of[-1]["total"], "healthy": as_of[-1]["healthy"], "warning": as_of[-1]["warning"], "critical": as_of[-1]["critical"], "cycle": as_of[-1].get("cycle")}
+            if as_of else store.summary()
+        )
+    else:
+        current = store.summary()
 
     incidents = store.list_incidents(limit=100000)
     if start:
@@ -611,7 +634,10 @@ def api_email_preview():
     recipient = request.args.get("recipient", "Manager")
     report_type = request.args.get("report_type", "daily")
     settings = store.get_app_settings()
-    platforms = store.list_platforms()
+    # Under Development platforms aren't live yet, so they're left out of
+    # the client-facing report entirely rather than shown as an extra
+    # status row that isn't meaningful yet.
+    platforms = [p for p in store.list_platforms() if p.get("stage", "Running") == "Running"]
     incidents, period_label = _incidents_for_report(report_type)
     built = email_builder.build_email(
         platforms, incidents=incidents, report_type=report_type, period_label=period_label,
@@ -641,7 +667,7 @@ def api_email_send():
         text = body.get("text") or email_builder.html_to_text(custom_html)
     else:
         settings = store.get_app_settings()
-        platforms = store.list_platforms()
+        platforms = [p for p in store.list_platforms() if p.get("stage", "Running") == "Running"]
         incidents, period_label = _incidents_for_report(report_type)
         built = email_builder.build_email(
             platforms, incidents=incidents, report_type=report_type, period_label=period_label,

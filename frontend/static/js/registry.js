@@ -43,7 +43,7 @@ function renderRegistry() {
   body.innerHTML = rows.map((p) => `
     <tr>
       <td class="row-link" onclick="window.location.href='/platform/${encodeURIComponent(p.id)}'">
-        <div class="cell-primary">${escapeHtml(p.project_name)}</div>
+        <div class="cell-primary">${escapeHtml(p.project_name)} ${stageBadge(p.stage)}</div>
         <div class="cell-muted">${escapeHtml(p.url || "")}</div>
       </td>
       <td>${healthBadge(p.health)}</td>

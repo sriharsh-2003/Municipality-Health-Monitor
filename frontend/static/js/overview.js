@@ -63,6 +63,16 @@ function renderKpis(dash) {
   document.getElementById("kpiCriticalIncidents").textContent = dash.critical_incidents_in_range;
   document.getElementById("kpiOpenIncidents").textContent = dash.open_incidents_total;
   document.getElementById("recentIncidentsDesc").textContent = `Within ${label.toLowerCase()}`;
+
+  // A Custom range with an end date in the past makes "current" mean "as of
+  // that date" rather than "right now"; say so, since the number is the
+  // same shape either way and the difference isn't otherwise visible.
+  const donutDesc = document.getElementById("donutDesc");
+  const rangeEnd = dash.range && dash.range.end ? new Date(dash.range.end) : null;
+  const isHistorical = currentRange === "custom" && rangeEnd && (Date.now() - rangeEnd.getTime()) > 60000;
+  donutDesc.textContent = isHistorical
+    ? `Distribution as of ${rangeEnd.toLocaleDateString()}`
+    : "Current distribution, live";
 }
 
 function renderTrendChart(trend) {
@@ -170,7 +180,7 @@ function renderPlatformTable(platforms, filterHealth) {
   }
   body.innerHTML = rows.slice(0, 8).map((p) => `
     <tr class="row-link" onclick="window.location.href='/platform/${encodeURIComponent(p.id)}'">
-      <td class="cell-primary">${escapeHtml(p.project_name)}</td>
+      <td class="cell-primary">${escapeHtml(p.project_name)} ${stageBadge(p.stage)}</td>
       <td>${healthBadge(p.health)}</td>
       <td>${escapeHtml(p.assigned_operator || "Unassigned")}</td>
       <td class="cell-muted">${escapeHtml(timeAgoOrValue(p.last_visit))}</td>

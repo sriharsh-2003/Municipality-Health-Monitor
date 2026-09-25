@@ -34,7 +34,7 @@ async function loadPlatformDetail() {
 }
 
 function renderHeader(p) {
-  document.getElementById("platformName").textContent = p.project_name;
+  document.getElementById("platformName").innerHTML = `${escapeHtml(p.project_name)} ${stageBadge(p.stage)}`;
   document.getElementById("platformUrl").textContent = p.url || "No URL on file";
 }
 
@@ -50,7 +50,7 @@ function renderKpis(p) {
 
 function fillForm(p) {
   const form = document.getElementById("profileForm");
-  ["project_name", "url", "assigned_operator", "last_visit", "cameras_online", "cameras_total",
+  ["project_name", "url", "assigned_operator", "last_visit", "stage", "cameras_online", "cameras_total",
    "detections_today", "frames_processed", "latency_ms", "buffer_queue_items", "notes"].forEach((key) => {
     const el = form.querySelector(`[name="${key}"]`);
     if (el) el.value = p[key] ?? "";

@@ -26,8 +26,16 @@ PLATFORM_FIELDS = [
     "id", "project_name", "url", "assigned_operator", "last_visit", "health",
     "last_detection", "notes", "needs_confirmation",
     "detections_today", "frames_processed", "cameras_online", "cameras_total",
-    "latency_ms", "buffer_queue_items", "updated_at",
+    "latency_ms", "buffer_queue_items", "updated_at", "stage",
 ]
+
+# "stage" is independent of "health": health answers "is it up right now",
+# stage answers "has it actually launched yet". A platform Under Development
+# is excluded from the health KPI counts and automated reports, but still
+# shows up in the Registry with a distinct badge, since the client wants to
+# track it there while it's being built without it skewing operational
+# status. Existing platforms default to "Running" on migration.
+STAGE_VALUES = ["Under Development", "Running"]
 
 INCIDENT_FIELDS = [
     "id", "platform_id", "project_name", "cycle", "timestamp", "reported_by",
@@ -59,32 +67,32 @@ def _seed_platforms():
          "assigned_operator": "A. Al-Mansoor", "last_visit": now, "health": "Healthy", "last_detection": now,
          "notes": "", "needs_confirmation": False,
          "detections_today": 14820, "frames_processed": 89400, "cameras_online": 36, "cameras_total": 48,
-         "latency_ms": 18, "buffer_queue_items": 0, "updated_at": now},
+         "latency_ms": 18, "buffer_queue_items": 0, "updated_at": now, "stage": "Running"},
         {"id": "p_smart_gate", "project_name": "Smart Gate Platform", "url": "https://gate-ops.municipality.gov.local",
          "assigned_operator": "K. Al-Zahrani", "last_visit": now, "health": "Healthy", "last_detection": now,
          "notes": "", "needs_confirmation": False,
          "detections_today": 6430, "frames_processed": 34120, "cameras_online": 12, "cameras_total": 12,
-         "latency_ms": 22, "buffer_queue_items": 0, "updated_at": now},
+         "latency_ms": 22, "buffer_queue_items": 0, "updated_at": now, "stage": "Running"},
         {"id": "p_rrm", "project_name": "RRM Portal", "url": "https://rrm.municipality.gov.local",
          "assigned_operator": "S. Al-Otaibi", "last_visit": now, "health": "Degraded", "last_detection": "Yesterday, 22:15",
          "notes": "No new images since last night.", "needs_confirmation": False,
          "detections_today": 1120, "frames_processed": 8940, "cameras_online": 9, "cameras_total": 12,
-         "latency_ms": 64, "buffer_queue_items": 1420, "updated_at": now},
+         "latency_ms": 64, "buffer_queue_items": 1420, "updated_at": now, "stage": "Running"},
         {"id": "p_hmm", "project_name": "HMM Portal", "url": "https://hmm.municipality.gov.local",
          "assigned_operator": "M. Farhan", "last_visit": now, "health": "Healthy", "last_detection": now,
          "notes": "", "needs_confirmation": False,
          "detections_today": 3890, "frames_processed": 19200, "cameras_online": 8, "cameras_total": 8,
-         "latency_ms": 26, "buffer_queue_items": 0, "updated_at": now},
+         "latency_ms": 26, "buffer_queue_items": 0, "updated_at": now, "stage": "Running"},
         {"id": "p_urban_eye", "project_name": "Urban Eye Platform", "url": "https://urbaneye.municipality.gov.local",
          "assigned_operator": "T. Al-Harbi", "last_visit": now, "health": "Down", "last_detection": "N/A",
          "notes": "Page not loading, error 500. Flagged to the platform owner.", "needs_confirmation": False,
          "detections_today": 0, "frames_processed": 1420, "cameras_online": 0, "cameras_total": 12,
-         "latency_ms": 0, "buffer_queue_items": 0, "updated_at": now},
+         "latency_ms": 0, "buffer_queue_items": 0, "updated_at": now, "stage": "Running"},
         {"id": "p_urben_eye", "project_name": "Urben Eye Platform", "url": "https://urbeneye.municipality.gov.local",
          "assigned_operator": "T. Al-Harbi", "last_visit": now, "health": "Healthy", "last_detection": now,
          "notes": "", "needs_confirmation": True,
          "detections_today": 2210, "frames_processed": 11200, "cameras_online": 6, "cameras_total": 6,
-         "latency_ms": 20, "buffer_queue_items": 0, "updated_at": now},
+         "latency_ms": 20, "buffer_queue_items": 0, "updated_at": now, "stage": "Running"},
     ]
 
 
@@ -199,6 +207,21 @@ class ExcelStore:
                     if i > len(header) or header[i - 1] != field:
                         incidents.cell(row=1, column=i, value=field)
                 changed = True
+
+        platforms_ws = wb["Platforms"]
+        p_header = [c.value for c in platforms_ws[1]] if platforms_ws.max_row >= 1 else []
+        if "stage" not in p_header:
+            stage_col = len(p_header) + 1
+            platforms_ws.cell(row=1, column=stage_col, value="stage")
+            for row in platforms_ws.iter_rows(min_row=2):
+                if row[0].value is None:
+                    continue
+                # Existing platforms predate this field; they were already
+                # live, so default them to Running rather than leaving the
+                # cell blank (which would otherwise fail STAGE_VALUES checks).
+                row[stage_col - 1].value = "Running"
+            changed = True
+
         if changed:
             wb.save(self.xlsx_path)
 
@@ -213,7 +236,9 @@ class ExcelStore:
         for row in ws.iter_rows(min_row=2, values_only=True):
             if row[0] is None:
                 continue
-            rows.append(dict(zip(PLATFORM_FIELDS, row)))
+            p = dict(zip(PLATFORM_FIELDS, row))
+            p["stage"] = p.get("stage") or "Running"
+            rows.append(p)
         return rows
 
     def get_platform(self, platform_id):
@@ -245,8 +270,12 @@ class ExcelStore:
     def _append_snapshot(self, wb, cycle, save_after=True, timestamp=None):
         ws = wb["Platforms"]
         healthy = warning = critical = total = 0
+        stage_idx = PLATFORM_FIELDS.index("stage")
         for row in ws.iter_rows(min_row=2, values_only=True):
             if row[0] is None:
+                continue
+            stage = row[stage_idx] if len(row) > stage_idx else None
+            if (stage or "Running") != "Running":
                 continue
             total += 1
             health = row[PLATFORM_FIELDS.index("health")]
@@ -530,7 +559,11 @@ class ExcelStore:
 
     # ------------------------------------------------------------- summary
     def summary(self):
-        platforms = self.list_platforms()
+        # Under Development platforms are excluded from the health KPI
+        # counts, they're not live yet, so they shouldn't skew whether
+        # things look healthy or not. list_platforms() still returns them
+        # (Registry needs the full list, badged), this just filters here.
+        platforms = [p for p in self.list_platforms() if p.get("stage", "Running") == "Running"]
         healthy = sum(1 for p in platforms if p["health"] == "Healthy")
         warning = sum(1 for p in platforms if p["health"] == "Degraded")
         critical = sum(1 for p in platforms if p["health"] == "Down")
