@@ -128,6 +128,8 @@ input, select, textarea { font-family: inherit; }
 .sidebar-brand-text .name { font-weight: 600; font-size: 14px; line-height: 1.25; }
 .sidebar-brand-text .sub { font-size: 11px; color: rgba(255,255,255,0.55); }
 .is-collapsed .sidebar-brand-text { display: none; }
+.is-collapsed .sidebar-brand-mark { display: none; }
+.is-collapsed .sidebar-brand { justify-content: center; padding-left: 8px; padding-right: 8px; }
 
 .sidebar-toggle {
   margin-left: auto;
@@ -137,7 +139,7 @@ input, select, textarea { font-family: inherit; }
   flex-shrink: 0;
 }
 .sidebar-toggle:hover { background: rgba(255,255,255,0.18); }
-.is-collapsed .sidebar-toggle { display: none; }
+.is-collapsed .sidebar-toggle { margin-left: 0; }
 
 .sidebar-nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
 .sidebar-section-label {
@@ -557,3 +559,6 @@ table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .page-content { padding: 20px 16px 50px; }
   .topbar { padding: 0 16px; }
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display: inline-block; animation: spin 0.9s linear infinite; }

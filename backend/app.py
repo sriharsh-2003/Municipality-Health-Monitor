@@ -512,6 +512,34 @@ def _resolve_range(range_key, start_param, end_param):
     return now - delta, now
 
 
+def _incident_counts_by_day(incidents, start, end):
+    """Every calendar day between start and end (inclusive), each paired
+    with how many incidents landed on it, zero-incident days included.
+    The point of the Incident Activity chart is to show the quiet days as
+    plainly as the busy ones, so gaps can't just be missing rows the way
+    they'd be if this only returned days that actually had something."""
+    by_day = {}
+    for i in incidents:
+        d = (i.get("timestamp") or "")[:10]
+        if d:
+            by_day[d] = by_day.get(d, 0) + 1
+
+    if start:
+        day_cursor = start.date()
+    elif by_day:
+        day_cursor = datetime.fromisoformat(min(by_day.keys())).date()
+    else:
+        return []
+    end_date = (end or datetime.now()).date()
+
+    days = []
+    while day_cursor <= end_date:
+        key = day_cursor.isoformat()
+        days.append({"date": key, "count": by_day.get(key, 0)})
+        day_cursor += timedelta(days=1)
+    return days[-120:]  # cap keeps "All Time" legible on a very old dataset
+
+
 def _rollup_daily(snapshots):
     """Collapses every action-level snapshot down to one point per calendar
     day, using the last snapshot of that day (its end-of-day state), sorted
@@ -579,6 +607,8 @@ def api_dashboard():
         incidents = [i for i in incidents if i.get("timestamp", "") <= end.isoformat()]
     incidents.sort(key=lambda i: i.get("timestamp", ""), reverse=True)
 
+    incident_daily_counts = _incident_counts_by_day(incidents, start, end)
+
     critical_in_range = sum(1 for i in incidents if i.get("severity") == "Critical" or i.get("health") == "Down")
 
     # "Still open" is a live operational backlog count, independent of the
@@ -595,6 +625,7 @@ def api_dashboard():
         },
         "current": current,
         "trend": trend,
+        "incident_daily_counts": incident_daily_counts,
         "incidents_in_range": len(incidents),
         "critical_incidents_in_range": critical_in_range,
         "open_incidents_total": open_incidents_total,
@@ -752,6 +783,30 @@ def api_download_backup(filename):
     if not path.exists():
         abort(404)
     return send_file(path, as_attachment=True, download_name=safe_name)
+
+
+@app.route("/api/admin/seed-demo-data", methods=["POST"])
+def api_seed_demo_data():
+    """
+    Generates demo incident history against whatever platforms already
+    exist. Additive, never deletes anything, so it's safe to run against
+    a live instance (e.g. on Render) that a client is already looking at.
+    Exists because Render's free tier has no shell access, this is the
+    only way to seed demo data there without a local machine.
+    """
+    body = request.get_json(silent=True) or {}
+    days = body.get("days", 60)
+    try:
+        days = max(1, min(int(days), 365))
+    except (TypeError, ValueError):
+        return jsonify({"error": "days must be a number"}), 400
+
+    import demo_seed
+    try:
+        incident_count, zero_days = demo_seed.generate(store, ATTACHMENTS_DIR, days=days)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"ok": True, "incident_count": incident_count, "days": days, "zero_incident_days": zero_days})
 
 
 # ------------------------------------------------------------------ export

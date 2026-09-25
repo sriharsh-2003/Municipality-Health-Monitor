@@ -13,6 +13,7 @@ const RANGE_LABELS = {
 
 let trendChartInstance = null;
 let donutChartInstance = null;
+let incidentBarChartInstance = null;
 let currentRange = "7d";
 let customStart = null;
 let customEnd = null;
@@ -41,6 +42,7 @@ async function loadDashboard() {
     renderKpis(dash);
     renderTrendChart(dash.trend);
     renderDonutChart(dash.current);
+    renderIncidentBarChart(dash.incident_daily_counts);
     renderPlatformTable(platforms, activeKpiFilter);
     renderRecentIncidents(dash.recent_incidents);
   } catch (err) {
@@ -159,6 +161,62 @@ function renderDonutChart(current) {
           labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 9, boxHeight: 9, padding: 18, font: { size: 12, weight: "600" } },
         },
         tooltip: { backgroundColor: "#2c0526", padding: 10, cornerRadius: 8 },
+      },
+    },
+  });
+}
+
+function renderIncidentBarChart(dailyCounts) {
+  const frame = document.getElementById("incidentBarChart").parentElement;
+  const existingEmpty = document.getElementById("incidentBarEmpty");
+  if (existingEmpty) existingEmpty.remove();
+  const ctx = document.getElementById("incidentBarChart");
+  ctx.style.display = "";
+
+  if (typeof Chart === "undefined") return;
+
+  if (!dailyCounts || !dailyCounts.length) {
+    ctx.style.display = "none";
+    frame.insertAdjacentHTML("beforeend", '<div class="empty-state" id="incidentBarEmpty"><span class="material-symbols-outlined">bar_chart</span><div>No days to show yet for this range.</div></div>');
+    return;
+  }
+
+  const labels = dailyCounts.map((d) => d.date);
+  const counts = dailyCounts.map((d) => d.count);
+  const zeroDays = counts.filter((c) => c === 0).length;
+  document.getElementById("incidentBarDesc").textContent =
+    `One bar per day across the selected range. ${zeroDays} of ${counts.length} day${counts.length === 1 ? "" : "s"} had no incidents.`;
+
+  if (incidentBarChartInstance) incidentBarChartInstance.destroy();
+  incidentBarChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Incidents",
+        data: counts,
+        backgroundColor: counts.map((c) => (c === 0 ? "rgba(64,9,56,0.08)" : "rgba(0,179,164,0.55)")),
+        hoverBackgroundColor: counts.map((c) => (c === 0 ? "rgba(64,9,56,0.14)" : "#007e73")),
+        borderRadius: 4,
+        borderSkipped: false,
+        maxBarThickness: 28,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#2c0526", padding: 10, cornerRadius: 8, titleFont: { size: 12 }, bodyFont: { size: 12 },
+          callbacks: {
+            label: (item) => `${item.parsed.y} incident${item.parsed.y === 1 ? "" : "s"}`,
+          },
+        },
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } }, grid: { color: "rgba(64,9,56,0.06)" } },
+        x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10, font: { size: 11 } }, grid: { display: false } },
       },
     },
   });

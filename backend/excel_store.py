@@ -16,6 +16,8 @@ human can open without this app.
 """
 
 import json
+import os
+import tempfile
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -57,7 +59,7 @@ QUICK_EDIT_FIELDS = ["project_name", "url", "assigned_operator", "last_visit", "
 
 HEALTH_VALUES = ["Healthy", "Degraded", "Down"]
 
-_lock = threading.Lock()
+_lock = threading.RLock()  # reentrant: some locked methods call other locked methods
 
 
 def _seed_platforms():
@@ -185,9 +187,9 @@ class ExcelStore:
         incidents = wb.create_sheet("Incidents")
         incidents.append(INCIDENT_FIELDS)
 
-        wb.save(self.xlsx_path)
+        self._save(wb)
         self._append_snapshot(wb, cycle=0, save_after=False)
-        wb.save(self.xlsx_path)
+        self._save(wb)
 
     def _migrate_schema(self):
         """Adds sheets/columns introduced after a workbook was first created,
@@ -223,23 +225,46 @@ class ExcelStore:
             changed = True
 
         if changed:
-            wb.save(self.xlsx_path)
+            self._save(wb)
 
     def _open(self):
-        return load_workbook(self.xlsx_path)
+        with _lock:
+            return load_workbook(self.xlsx_path)
+
+    def _save(self, wb):
+        """
+        Atomic save: write to a temp file in the same directory, then
+        os.replace() it onto the real path. A reader (including a
+        concurrent request in another thread, or a background scheduler
+        tick) can never observe a half-written file this way, it either
+        sees the old version or the fully-written new one. Plain
+        wb.save(path) writes in place, if a read lands mid-write it can
+        hit a truncated/corrupt file (this is exactly what produced the
+        'EOFError' crash caught during testing under concurrent access).
+        """
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=str(Path(self.xlsx_path).parent), suffix=".xlsx.tmp")
+        os.close(tmp_fd)
+        try:
+            wb.save(tmp_path)
+            os.replace(tmp_path, self.xlsx_path)
+        except Exception:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
 
     # ---------------------------------------------------------- platforms
     def list_platforms(self):
-        wb = self._open()
-        ws = wb["Platforms"]
-        rows = []
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            if row[0] is None:
-                continue
-            p = dict(zip(PLATFORM_FIELDS, row))
-            p["stage"] = p.get("stage") or "Running"
-            rows.append(p)
-        return rows
+        with _lock:
+            wb = self._open()
+            ws = wb["Platforms"]
+            rows = []
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row[0] is None:
+                    continue
+                p = dict(zip(PLATFORM_FIELDS, row))
+                p["stage"] = p.get("stage") or "Running"
+                rows.append(p)
+            return rows
 
     def get_platform(self, platform_id):
         for p in self.list_platforms():
@@ -289,7 +314,7 @@ class ExcelStore:
         snap_time = timestamp or datetime.now().isoformat(timespec="seconds")
         snaps.append([snap_time, cycle, healthy, warning, critical, total])
         if save_after:
-            wb.save(self.xlsx_path)
+            self._save(wb)
         return {"healthy": healthy, "warning": warning, "critical": critical, "total": total}
 
     def _append_logs(self, wb, cycle, entries):
@@ -357,7 +382,7 @@ class ExcelStore:
 
             self._append_logs(wb, cycle, log_entries)
             summary = self._append_snapshot(wb, cycle, save_after=False)
-            wb.save(self.xlsx_path)
+            self._save(wb)
             self._write_state(state)
             return summary
 
@@ -381,7 +406,7 @@ class ExcelStore:
                     "old_value": "present", "new_value": "removed", "changed_by": changed_by,
                 }])
             summary = self._append_snapshot(wb, cycle, save_after=False)
-            wb.save(self.xlsx_path)
+            self._save(wb)
             self._write_state(state)
             return summary
 
@@ -451,7 +476,7 @@ class ExcelStore:
 
             self._append_logs(wb, cycle, log_entries)
             summary = self._append_snapshot(wb, cycle, save_after=False, timestamp=ts)
-            wb.save(self.xlsx_path)
+            self._save(wb)
             self._write_state(state)
             return {"summary": summary, "incident_id": incident_id, "cycle": cycle}
 
@@ -529,7 +554,7 @@ class ExcelStore:
                 self._append_logs(wb, cycle, log_entries)
                 self._write_state(state)
 
-            wb.save(self.xlsx_path)
+            self._save(wb)
         return self.get_incident(incident_id)
 
     # ---------------------------------------------------------------- logs
