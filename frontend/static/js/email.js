@@ -6,6 +6,9 @@ let originalGeneratedHtml = null;
 let allIncidentsForAttach = [];
 let selectedIncidentIds = new Set();
 let currentReportType = "daily";
+let currentRecordsRange = "all";
+let recordsCustomStart = null;
+let recordsCustomEnd = null;
 
 const REPORT_TYPE_HINTS = {
   daily: "A table of today's incidents, plus current platform status.",
@@ -188,7 +191,12 @@ async function loadAutomation() {
 
 async function loadRecordsForAttach() {
   try {
-    allIncidentsForAttach = await Api.getAllIncidents(300);
+    const range = { key: currentRecordsRange };
+    if (currentRecordsRange === "custom") {
+      range.start = recordsCustomStart;
+      range.end = recordsCustomEnd;
+    }
+    allIncidentsForAttach = await Api.getAllIncidents(2000, range);
     renderRecordsList();
   } catch (err) {
     showToast(err.message || "Could not load incident records.", true);
@@ -204,10 +212,9 @@ function updateAttachSummary() {
     : '<span class="material-symbols-outlined">attach_file</span><span>No incident records selected to attach. Use the <strong>Attach Records</strong> tab to pick specific ones as a CSV attachment.</span>';
 }
 
-function renderRecordsList() {
-  const body = document.getElementById("recordsBody");
+function filteredRecords() {
   const q = (document.getElementById("recordsSearchInput").value || "").toLowerCase().trim();
-  const rows = allIncidentsForAttach.filter((inc) => {
+  return allIncidentsForAttach.filter((inc) => {
     if (!q) return true;
     return (
       (inc.project_name || "").toLowerCase().includes(q) ||
@@ -215,6 +222,11 @@ function renderRecordsList() {
       (inc.reported_by || "").toLowerCase().includes(q)
     );
   });
+}
+
+function renderRecordsList() {
+  const body = document.getElementById("recordsBody");
+  const rows = filteredRecords();
   if (!rows.length) {
     body.innerHTML = '<tr><td colspan="6" class="empty-state">No incidents match.</td></tr>';
     return;
@@ -240,9 +252,33 @@ function renderRecordsList() {
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("recordsSearchInput").addEventListener("input", renderRecordsList);
+  document.getElementById("selectAllBtn").addEventListener("click", () => {
+    // Only what's currently visible (matches the search box and the
+    // selected range), not everything ever loaded, selecting something
+    // the operator can't see on screen would be surprising.
+    filteredRecords().forEach((inc) => selectedIncidentIds.add(inc.id));
+    renderRecordsList();
+    updateAttachSummary();
+  });
   document.getElementById("clearSelectionBtn").addEventListener("click", () => {
     selectedIncidentIds.clear();
     renderRecordsList();
     updateAttachSummary();
+  });
+
+  document.querySelectorAll("#recordsRangeTabs .pill-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#recordsRangeTabs .pill-tab").forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      currentRecordsRange = tab.dataset.range;
+      document.getElementById("recordsCustomRangeBox").style.display = currentRecordsRange === "custom" ? "flex" : "none";
+      if (currentRecordsRange !== "custom") loadRecordsForAttach();
+    });
+  });
+  document.getElementById("recordsApplyCustomRange").addEventListener("click", () => {
+    recordsCustomStart = document.getElementById("recordsRangeStart").value || null;
+    recordsCustomEnd = document.getElementById("recordsRangeEnd").value || null;
+    if (!recordsCustomStart) { showToast("Pick a start date first.", true); return; }
+    loadRecordsForAttach();
   });
 });

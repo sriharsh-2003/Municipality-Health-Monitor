@@ -328,6 +328,15 @@ def api_create_incident(platform_id):
 def api_list_incidents():
     platform_id = request.args.get("platform_id") or None
     limit = int(request.args.get("limit", 200))
+    range_key = request.args.get("range")
+    if range_key:
+        start, end = _resolve_range(range_key, request.args.get("start"), request.args.get("end"))
+        incidents = store.list_incidents(platform_id=platform_id, limit=100000)
+        if start:
+            incidents = [i for i in incidents if i.get("timestamp", "") >= start.isoformat()]
+        if end:
+            incidents = [i for i in incidents if i.get("timestamp", "") <= end.isoformat()]
+        return jsonify(incidents[:limit])
     return jsonify(store.list_incidents(platform_id=platform_id, limit=limit))
 
 

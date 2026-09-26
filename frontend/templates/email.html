@@ -72,10 +72,28 @@
       <span class="chip" id="recordsSelectedChip">0 selected</span>
     </div>
     <div class="toolbar">
+      <div class="pill-tabs" id="recordsRangeTabs">
+        <div class="pill-tab" data-range="today">Today</div>
+        <div class="pill-tab" data-range="7d">Week</div>
+        <div class="pill-tab" data-range="30d">Month</div>
+        <div class="pill-tab" data-range="12m">Year</div>
+        <div class="pill-tab is-active" data-range="all">All Time</div>
+        <div class="pill-tab" data-range="custom">Custom</div>
+      </div>
+      <div class="card-head-spacer"></div>
+      <div id="recordsCustomRangeBox" style="display:none; gap:8px; align-items:center;">
+        <input type="date" class="input" id="recordsRangeStart" style="width:150px;">
+        <span style="color:var(--c-outline); font-size:12px;">to</span>
+        <input type="date" class="input" id="recordsRangeEnd" style="width:150px;">
+        <button class="btn btn-secondary btn-sm" id="recordsApplyCustomRange">Apply</button>
+      </div>
+    </div>
+    <div class="toolbar">
       <div class="search-bar">
         <span class="material-symbols-outlined">search</span>
         <input type="text" id="recordsSearchInput" placeholder="Search by platform, category, or reporter…">
       </div>
+      <button class="btn btn-secondary btn-sm" id="selectAllBtn">Select All</button>
       <button class="btn btn-secondary btn-sm" id="clearSelectionBtn">Clear Selection</button>
     </div>
     <div class="table-wrap">

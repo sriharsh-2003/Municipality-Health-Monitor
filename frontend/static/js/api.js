@@ -86,7 +86,17 @@ const Api = (() => {
       requestForm(`/api/incidents/${encodeURIComponent(incidentId)}`, formData, "PUT"),
     getIncidents: (platformId, limit = 200) =>
       request(`/api/incidents?platform_id=${encodeURIComponent(platformId)}&limit=${limit}`),
-    getAllIncidents: (limit = 200) => request(`/api/incidents?limit=${limit}`),
+    getAllIncidents: (limit = 200, range) => {
+      let url = `/api/incidents?limit=${limit}`;
+      if (range && range.key) {
+        url += `&range=${encodeURIComponent(range.key)}`;
+        if (range.key === "custom") {
+          if (range.start) url += `&start=${encodeURIComponent(range.start)}`;
+          if (range.end) url += `&end=${encodeURIComponent(range.end)}`;
+        }
+      }
+      return request(url);
+    },
     getIncidentOptions: () => request("/api/incident-options"),
     incidentsCsvUrl: (ids) => ids && ids.length ? `/api/incidents/export.csv?ids=${ids.join(",")}` : "/api/incidents/export.csv",
 
