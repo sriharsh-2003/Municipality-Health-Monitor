@@ -14,9 +14,9 @@ Safe to re-run: it does not delete anything itself, but if you want a
 clean slate first, delete data/platform_health.xlsx, data/app_state.json
 and data/attachments/ before running it.
 
-For seeding a running instance (e.g. on Render, with no shell access),
-use the "Generate Demo Data" button on the Backups page instead, which
-calls the same generator through /api/admin/seed-demo-data.
+Not exposed anywhere in the running app, no button, no endpoint, purely
+a local dev tool for generating data/ contents that then get committed
+to the repo when demo data is wanted on a deploy.
 """
 
 from pathlib import Path

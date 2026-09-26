@@ -1,0 +1,14 @@
+{
+  "cycle": 302,
+  "automation": {},
+  "last_automated_send": null,
+  "app_settings": {
+    "compress_screenshots": true,
+    "default_reporter_name": "",
+    "email_signature_name": "",
+    "email_signature_title": "",
+    "email_signature_org": "",
+    "default_report_type": "daily",
+    "email_tagline": ""
+  }
+}

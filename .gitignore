@@ -2,9 +2,9 @@ backend/config.json
 backend/__pycache__/
 **/__pycache__/
 *.pyc
-data/platform_health.xlsx
-data/app_state.json
-data/attachments/*
-!data/attachments/.gitkeep
+# platform_health.xlsx, app_state.json, and attachments are intentionally
+# committed right now so demo data ships with the repo for the client
+# preview deploy. Before handing this off for real, wipe the demo data
+# and re-add these three lines.
 data/backups/*
 !data/backups/.gitkeep

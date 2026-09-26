@@ -1,10 +1,11 @@
 """
 demo_seed.py
 
-The actual demo-data generator, factored out so it can be run two ways:
-the standalone seed_demo_data.py script (for a fresh local data/ folder),
-and the in-app "Generate Demo Data" button on the Backups page (for
-seeding a running instance, e.g. on Render, without shell access).
+The actual demo-data generator. Run via seed_demo_data.py against a local
+data/ folder when demo data is needed, e.g. to bake some into the repo
+before a deploy. Not reachable from the running app, there is no button
+or endpoint for this, by design: it's a one-off local tool, not something
+end users trigger themselves.
 
 Not part of any real reporting path. Purely for having something to look
 at while reviewing the app.

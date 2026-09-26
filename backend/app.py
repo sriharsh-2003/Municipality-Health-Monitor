@@ -785,30 +785,6 @@ def api_download_backup(filename):
     return send_file(path, as_attachment=True, download_name=safe_name)
 
 
-@app.route("/api/admin/seed-demo-data", methods=["POST"])
-def api_seed_demo_data():
-    """
-    Generates demo incident history against whatever platforms already
-    exist. Additive, never deletes anything, so it's safe to run against
-    a live instance (e.g. on Render) that a client is already looking at.
-    Exists because Render's free tier has no shell access, this is the
-    only way to seed demo data there without a local machine.
-    """
-    body = request.get_json(silent=True) or {}
-    days = body.get("days", 60)
-    try:
-        days = max(1, min(int(days), 365))
-    except (TypeError, ValueError):
-        return jsonify({"error": "days must be a number"}), 400
-
-    import demo_seed
-    try:
-        incident_count, zero_days = demo_seed.generate(store, ATTACHMENTS_DIR, days=days)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    return jsonify({"ok": True, "incident_count": incident_count, "days": days, "zero_incident_days": zero_days})
-
-
 # ------------------------------------------------------------------ export
 
 @app.route("/api/export")

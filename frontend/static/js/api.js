@@ -95,7 +95,6 @@ const Api = (() => {
     saveBackupSettings: (settings) => request("/api/backup-settings", { method: "POST", body: JSON.stringify(settings) }),
     listBackups: () => request("/api/backups"),
     runBackupNow: () => request("/api/backups/run", { method: "POST" }),
-    seedDemoData: (days) => request("/api/admin/seed-demo-data", { method: "POST", body: JSON.stringify({ days }) }),
   };
 })();
 

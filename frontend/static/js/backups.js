@@ -77,23 +77,4 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.disabled = false;
     }
   });
-
-  document.getElementById("seedDemoDataBtn").addEventListener("click", async () => {
-    const days = Number(document.getElementById("demoDataDays").value);
-    const label = document.getElementById("demoDataDays").selectedOptions[0].textContent;
-    if (!confirm(`Generate ${label} of demo incident history across your existing platforms? This adds data, it won't remove anything already there.`)) return;
-    const btn = document.getElementById("seedDemoDataBtn");
-    btn.disabled = true;
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Generating…';
-    try {
-      const result = await Api.seedDemoData(days);
-      showToast(`Added ${result.incident_count} demo incidents over ${result.days} days (${result.zero_incident_days} had none). Check the Overview dashboard.`);
-    } catch (err) {
-      showToast(err.message || "Could not generate demo data.", true);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalHtml;
-    }
-  });
 });
